@@ -27,19 +27,6 @@ int main(void)
                        MOTOR_SPEED_PID_KD);
     encoder_init();
 
-    /* Keep all eight probes over the white floor during polarity calibration. */
-    OLED_Clear();
-    OLED_ShowString(0U, 0U, (uint8_t *)"CAL: WHITE", 8U, 1U);
-    OLED_Refresh();
-    delay_ms(APP_WHITE_CALIBRATION_DELAY_MS);
-    EightIR_CalibrateWhite(APP_WHITE_CALIBRATION_SAMPLES);
-
-    /* Place the two center probes (X4/X5) over the black line. */
-    OLED_Clear();
-    OLED_ShowString(0U, 0U, (uint8_t *)"PLACE LINE", 8U, 1U);
-    OLED_Refresh();
-    delay_ms(APP_LINE_PLACEMENT_DELAY_MS);
-
     while (1) {
         AppUltrasonic_Update();
         obstacle_now = AppUltrasonic_IsObstacle();

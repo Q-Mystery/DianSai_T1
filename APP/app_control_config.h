@@ -7,10 +7,7 @@
  * motor, encoder, grayscale, speed, or PID constants.
  */
 
-/* Main loop and start-up prompts. */
-#define APP_WHITE_CALIBRATION_DELAY_MS     (1000U)
-#define APP_WHITE_CALIBRATION_SAMPLES      (32U)
-#define APP_LINE_PLACEMENT_DELAY_MS        (2000U)
+/* Main loop and display timing. */
 #define APP_MAIN_LOOP_DELAY_MS             (1U)
 #define APP_OLED_DISPLAY_DIVIDER           (250U)
 #define MOTOR_DIRECT_TEST_START_DELAY_MS   (3000U)

@@ -21,11 +21,6 @@ static int16_t Limit_Speed(int16_t speed)
     return speed;
 }
 
-static int16_t Percent_Of_Speed(int16_t speed, uint8_t percent)
-{
-    return (int16_t)(((int32_t)speed * percent + 50) / 100);
-}
-
 static int8_t APP_Line_Error_From_Sensors(void)
 {
     int8_t left_score;
@@ -37,84 +32,6 @@ static int8_t APP_Line_Error_From_Sensors(void)
                            X6 * LINE_SCORE_X6 + X5 * LINE_SCORE_X5);
 
     return (int8_t)(right_score - left_score);
-}
-
-static int8_t APP_Line_Offset_Bias_From_Sensors(void)
-{
-    uint8_t left_level = 0U;
-    uint8_t right_level = 0U;
-
-    if (X1 != 0U) {
-        left_level = 3U;
-    } else if (X2 != 0U) {
-        left_level = 2U;
-    } else if (X3 != 0U) {
-        left_level = 1U;
-    }
-    if (X8 != 0U) {
-        right_level = 3U;
-    } else if (X7 != 0U) {
-        right_level = 2U;
-    } else if (X6 != 0U) {
-        right_level = 1U;
-    }
-
-    if (left_level > right_level) {
-        return -(int8_t)left_level;
-    }
-    if (right_level > left_level) {
-        return (int8_t)right_level;
-    }
-    return 0;
-}
-
-static uint8_t APP_Line_Correction_Severity(int8_t error,
-                                            int8_t offset_bias)
-{
-    uint8_t severity = (uint8_t)myabs(error);
-    uint8_t offset_level = (uint8_t)myabs(offset_bias);
-    uint8_t side_minimum = (offset_level == 0U) ? 0U :
-                           (uint8_t)(offset_level + 1U);
-
-    if (severity < side_minimum) {
-        severity = side_minimum;
-    }
-    if (severity > 4U) {
-        severity = 4U;
-    }
-    return severity;
-}
-
-static uint8_t APP_Line_Inner_Percent_From_Severity(uint8_t severity)
-{
-    if (severity >= 4U) {
-        return LINE_WEIGHTED_INNER_PERCENT_SCORE4;
-    }
-    if (severity == 3U) {
-        return LINE_WEIGHTED_INNER_PERCENT_SCORE3;
-    }
-    if (severity == 2U) {
-        return LINE_WEIGHTED_INNER_PERCENT_SCORE2;
-    }
-    return LINE_WEIGHTED_INNER_PERCENT_SCORE1;
-}
-
-static int8_t APP_Line_Direction_From_All_Sensors(int8_t error,
-                                                  int8_t offset_bias)
-{
-    if (error < -LINE_CENTER_DEADBAND) {
-        return -1;
-    }
-    if (error > LINE_CENTER_DEADBAND) {
-        return 1;
-    }
-    if (offset_bias < 0) {
-        return -1;
-    }
-    if (offset_bias > 0) {
-        return 1;
-    }
-    return 0;
 }
 
 float APP_HD_PID_Calc(int8_t actual_value)
@@ -178,10 +95,6 @@ void LineWalking(void)
     int16_t left_speed;
     int16_t right_speed;
     int8_t error;
-    int8_t line_direction;
-    int8_t offset_bias;
-    uint8_t correction_severity;
-    uint8_t inner_percent;
     uint8_t i;
 
     ReadEightIR(IR_Data_number);
@@ -203,10 +116,6 @@ void LineWalking(void)
     }
 
     error = APP_Line_Error_From_Sensors();
-    offset_bias = APP_Line_Offset_Bias_From_Sensors();
-    line_direction = APP_Line_Direction_From_All_Sensors(error, offset_bias);
-    correction_severity = APP_Line_Correction_Severity(error, offset_bias);
-    inner_percent = APP_Line_Inner_Percent_From_Severity(correction_severity);
 
     if (active_count == 0U) {
         s_previous_error = 0;
@@ -214,13 +123,11 @@ void LineWalking(void)
         if (s_lost_line_cycles < LINE_LOST_FORWARD_CYCLES) {
             s_lost_line_cycles++;
             if (s_last_valid_error < 0) {
-                Motion_Set_Speed(Percent_Of_Speed(LINE_SEARCH_SPEED_MM_S,
-                                                  LINE_LOST_INNER_PERCENT),
+                Motion_Set_Speed(LINE_TURN_INNER_SPEED_MM_S,
                                  LINE_SEARCH_SPEED_MM_S);
             } else if (s_last_valid_error > 0) {
                 Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S,
-                                 Percent_Of_Speed(LINE_SEARCH_SPEED_MM_S,
-                                                  LINE_LOST_INNER_PERCENT));
+                                 LINE_TURN_INNER_SPEED_MM_S);
             } else {
                 Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S,
                                  LINE_SEARCH_SPEED_MM_S);
@@ -233,8 +140,7 @@ void LineWalking(void)
 
     s_lost_line_cycles = 0U;
 
-    if ((offset_bias == 0) &&
-        (error >= -LINE_CENTER_DEADBAND) &&
+    if ((error >= -LINE_CENTER_DEADBAND) &&
         (error <= LINE_CENTER_DEADBAND)) {
         if (s_center_straight == 0U) {
             /* Remove differential PID history left by the preceding turn. */
@@ -249,22 +155,19 @@ void LineWalking(void)
     }
 
     s_center_straight = 0U;
-    if (line_direction != 0) {
-        s_last_valid_error = line_direction;
-    }
+    s_last_valid_error = error;
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
 
-    if (line_direction == 0) {
-        Motion_Set_Speed(LINE_BASE_SPEED_MM_S, LINE_BASE_SPEED_MM_S);
-        return;
-    }
-
-    if (line_direction < 0) {
-        right_speed = LINE_CORRECTION_SPEED_MM_S;
-        left_speed = Percent_Of_Speed(right_speed, inner_percent);
+    if (error < 0) {
+        left_speed = LINE_TURN_INNER_SPEED_MM_S;
+        right_speed = (myabs(error) >= 5) ?
+                          LINE_HARD_TURN_OUTER_SPEED_MM_S :
+                          LINE_TURN_OUTER_SPEED_MM_S;
     } else {
-        left_speed = LINE_CORRECTION_SPEED_MM_S;
-        right_speed = Percent_Of_Speed(left_speed, inner_percent);
+        left_speed = (myabs(error) >= 5) ?
+                         LINE_HARD_TURN_OUTER_SPEED_MM_S :
+                         LINE_TURN_OUTER_SPEED_MM_S;
+        right_speed = LINE_TURN_INNER_SPEED_MM_S;
     }
 
     left_speed = Limit_Speed(left_speed);

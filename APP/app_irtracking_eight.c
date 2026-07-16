@@ -21,6 +21,32 @@ static int16_t Limit_Speed(int16_t speed)
     return speed;
 }
 
+static int16_t Percent_Of_Speed(int16_t speed, uint8_t percent)
+{
+    return (int16_t)(((int32_t)speed * percent + 50) / 100);
+}
+
+static uint8_t APP_Line_Inner_Percent_From_Sensors(int8_t error)
+{
+    if (error < 0) {
+        if (X1 != 0U) {
+            return LINE_STEP_INNER_PERCENT_X1_X8;
+        }
+        if (X2 != 0U) {
+            return LINE_STEP_INNER_PERCENT_X2_X7;
+        }
+        return LINE_STEP_INNER_PERCENT_X3_X6;
+    }
+
+    if (X8 != 0U) {
+        return LINE_STEP_INNER_PERCENT_X1_X8;
+    }
+    if (X7 != 0U) {
+        return LINE_STEP_INNER_PERCENT_X2_X7;
+    }
+    return LINE_STEP_INNER_PERCENT_X3_X6;
+}
+
 static int8_t APP_Line_Error_From_Sensors(void)
 {
     int8_t left_score;
@@ -123,11 +149,9 @@ void LineWalking(void)
         if (s_lost_line_cycles < LINE_LOST_FORWARD_CYCLES) {
             s_lost_line_cycles++;
             if (s_last_valid_error < 0) {
-                Motion_Set_Speed(LINE_TURN_INNER_SPEED_MM_S,
-                                 LINE_SEARCH_SPEED_MM_S);
+                Motion_Set_Speed(0, LINE_SEARCH_SPEED_MM_S);
             } else if (s_last_valid_error > 0) {
-                Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S,
-                                 LINE_TURN_INNER_SPEED_MM_S);
+                Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S, 0);
             } else {
                 Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S,
                                  LINE_SEARCH_SPEED_MM_S);
@@ -159,15 +183,13 @@ void LineWalking(void)
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
 
     if (error < 0) {
-        left_speed = LINE_TURN_INNER_SPEED_MM_S;
-        right_speed = (myabs(error) >= 5) ?
-                          LINE_HARD_TURN_OUTER_SPEED_MM_S :
-                          LINE_TURN_OUTER_SPEED_MM_S;
+        right_speed = LINE_CORRECTION_SPEED_MM_S;
+        left_speed = Percent_Of_Speed(
+            right_speed, APP_Line_Inner_Percent_From_Sensors(error));
     } else {
-        left_speed = (myabs(error) >= 5) ?
-                         LINE_HARD_TURN_OUTER_SPEED_MM_S :
-                         LINE_TURN_OUTER_SPEED_MM_S;
-        right_speed = LINE_TURN_INNER_SPEED_MM_S;
+        left_speed = LINE_CORRECTION_SPEED_MM_S;
+        right_speed = Percent_Of_Speed(
+            left_speed, APP_Line_Inner_Percent_From_Sensors(error));
     }
 
     left_speed = Limit_Speed(left_speed);

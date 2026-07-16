@@ -179,4 +179,19 @@
 #define LINE_SCORE_X7                      (3U)
 #define LINE_SCORE_X8                      (4U)
 
+/*
+ * A-B-C-D two-lap oval mission.
+ * The car still follows the black line with the eight-channel grayscale
+ * sensors. Encoders provide lap distance and the MPU6050 Z gyro confirms the
+ * two 180-degree arcs. Wheel diameter is 48 mm, so MECANUM_CIRCLE_MM already
+ * matches pi * 48.
+ */
+#define TRACK_MISSION_TARGET_LAPS          (2U)
+#define TRACK_MISSION_STRAIGHT_MM          (2000U)
+#define TRACK_MISSION_ARC_LENGTH_MM        (1885U)
+#define TRACK_MISSION_STRAIGHT_CURVE_GATE_MM (1900U)
+#define TRACK_MISSION_DISTANCE_MARGIN_MM   (180U)
+#define TRACK_MISSION_ARC_YAW_CONFIRM_X10  (1500)
+#define TRACK_MISSION_YAW_RATE_GATE_X10    (80)
+
 #endif

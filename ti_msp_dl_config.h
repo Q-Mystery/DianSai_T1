@@ -183,6 +183,20 @@ extern "C" {
 /* Defines for SDA: GPIOA.28, LaunchPad header pin 38 */
 #define VOICE_IIC_SDA_PIN                                      (DL_GPIO_PIN_28)
 #define VOICE_IIC_SDA_IOMUX                                     (IOMUX_PINCM3)
+/* Port definition for Pin Group BCD_DISPLAY */
+#define BCD_DISPLAY_PORT                                                (GPIOB)
+/* Defines for B0: GPIOB.21 with pinCMx 49 on package pin 20 */
+#define BCD_DISPLAY_B0_PIN                                     (DL_GPIO_PIN_21)
+#define BCD_DISPLAY_B0_IOMUX                                    (IOMUX_PINCM49)
+/* Defines for B1: GPIOB.22 with pinCMx 50 on package pin 21 */
+#define BCD_DISPLAY_B1_PIN                                     (DL_GPIO_PIN_22)
+#define BCD_DISPLAY_B1_IOMUX                                    (IOMUX_PINCM50)
+/* Defines for B2: GPIOB.26 with pinCMx 57 on package pin 28 */
+#define BCD_DISPLAY_B2_PIN                                     (DL_GPIO_PIN_26)
+#define BCD_DISPLAY_B2_IOMUX                                    (IOMUX_PINCM57)
+/* Defines for B3: GPIOB.27 with pinCMx 58 on package pin 29 */
+#define BCD_DISPLAY_B3_PIN                                     (DL_GPIO_PIN_27)
+#define BCD_DISPLAY_B3_IOMUX                                    (IOMUX_PINCM58)
 /* Port definition for Pin Group ENCODER_E1 */
 #define ENCODER_E1_PORT                                                  (GPIOB)
 

@@ -109,6 +109,7 @@ $sources = @(
     "BSP\Motor\bsp_encoder.c",
     "BSP\Motor\bsp_motor.c",
     "BSP\OLED\oled.c",
+    "APP\app_bcd_display.c",
     "APP\app_motor.c",
     "APP\bsp_PID_motor.c",
     "APP\app_irtracking_eight.c",

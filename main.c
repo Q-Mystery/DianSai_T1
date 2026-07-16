@@ -1,4 +1,5 @@
 #include "AllHeader.h"
+#include "app_bcd_display.h"
 #include "app_control_config.h"
 #include "app_imu.h"
 #include "app_status_display.h"
@@ -13,6 +14,7 @@ int main(void)
     bool obstacle_last = false;
 
     SYSCFG_DL_init();
+    AppBCDDisplay_Init();
     OLED_Init();
     (void)AppIMU_Init();
     AppUltrasonic_Init();
@@ -30,6 +32,7 @@ int main(void)
     AppTrackMission_Init();
 
     while (1) {
+        AppBCDDisplay_Update();
         AppUltrasonic_Update();
         obstacle_now = AppUltrasonic_IsObstacle();
         if (obstacle_now) {

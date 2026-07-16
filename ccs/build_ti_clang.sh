@@ -122,6 +122,7 @@ SOURCES=(
     "$PROJECT_ROOT/BSP/Motor/bsp_encoder.c"
     "$PROJECT_ROOT/BSP/Motor/bsp_motor.c"
     "$PROJECT_ROOT/BSP/OLED/oled.c"
+    "$PROJECT_ROOT/APP/app_bcd_display.c"
     "$PROJECT_ROOT/APP/app_motor.c"
     "$PROJECT_ROOT/APP/bsp_PID_motor.c"
     "$PROJECT_ROOT/APP/app_irtracking_eight.c"

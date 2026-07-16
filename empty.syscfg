@@ -18,6 +18,7 @@ const GPIO7   = GPIO.addInstance();
 const GPIO8   = GPIO.addInstance();
 const GPIO9   = GPIO.addInstance();
 const GPIO10  = GPIO.addInstance();
+const GPIO11  = GPIO.addInstance();
 const PWM     = scripting.addModule("/ti/driverlib/PWM", {}, false);
 const PWM1    = PWM.addInstance();
 const SYSCTL  = scripting.addModule("/ti/driverlib/SYSCTL");
@@ -142,6 +143,28 @@ GPIO10.associatedPins[1].direction               = "INPUT";
 GPIO10.associatedPins[1].internalResistor        = "PULL_UP";
 GPIO10.associatedPins[1].assignedPin             = "28";
 GPIO10.associatedPins[1].pin.$assign             = "PA28";
+
+// BCD input for the added 7-segment display module.
+// Low bit to high bit: PB21, PB22, PB26, PB27.
+GPIO11.$name                                     = "BCD_DISPLAY";
+GPIO11.port                                      = "PORTB";
+GPIO11.associatedPins.create(4);
+GPIO11.associatedPins[0].$name                   = "B0";
+GPIO11.associatedPins[0].initialValue            = "CLEAR";
+GPIO11.associatedPins[0].assignedPin             = "21";
+GPIO11.associatedPins[0].pin.$assign             = "PB21";
+GPIO11.associatedPins[1].$name                   = "B1";
+GPIO11.associatedPins[1].initialValue            = "CLEAR";
+GPIO11.associatedPins[1].assignedPin             = "22";
+GPIO11.associatedPins[1].pin.$assign             = "PB22";
+GPIO11.associatedPins[2].$name                   = "B2";
+GPIO11.associatedPins[2].initialValue            = "CLEAR";
+GPIO11.associatedPins[2].assignedPin             = "26";
+GPIO11.associatedPins[2].pin.$assign             = "PB26";
+GPIO11.associatedPins[3].$name                   = "B3";
+GPIO11.associatedPins[3].initialValue            = "CLEAR";
+GPIO11.associatedPins[3].assignedPin             = "27";
+GPIO11.associatedPins[3].pin.$assign             = "PB27";
 
 GPIO4.$name                               = "ENCODER_E1";
 GPIO4.associatedPins.create(2);
@@ -275,4 +298,8 @@ GPIO5.associatedPins[0].pin.$suggestSolution       = "PB20";
 GPIO5.associatedPins[1].pin.$suggestSolution       = "PB13";
 GPIO10.associatedPins[0].pin.$suggestSolution      = "PA31";
 GPIO10.associatedPins[1].pin.$suggestSolution      = "PA28";
+GPIO11.associatedPins[0].pin.$suggestSolution      = "PB21";
+GPIO11.associatedPins[1].pin.$suggestSolution      = "PB22";
+GPIO11.associatedPins[2].pin.$suggestSolution      = "PB26";
+GPIO11.associatedPins[3].pin.$suggestSolution      = "PB27";
 PWM1.peripheral.$suggestSolution                   = "TIMA0";

@@ -152,16 +152,16 @@
  */
 #define LINE_TURN_KP                       (1.20f)
 #define LINE_TURN_KD                       (0.00f)
-#define LINE_BASE_SPEED_MM_S               (12)
-#define LINE_CORRECTION_SPEED_MM_S         (15)
-#define LINE_SEARCH_SPEED_MM_S             (5)
+#define LINE_BASE_SPEED_MM_S               (18)
+#define LINE_CORRECTION_SPEED_MM_S         (18)
+#define LINE_SEARCH_SPEED_MM_S             (6)
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (8)
-#define LINE_LOST_FORWARD_CYCLES           (8U)
+#define LINE_LOST_FORWARD_CYCLES           (12U)
 #define LINE_TURN_INNER_SPEED_MM_S         (0)
-#define LINE_TURN_OUTER_SPEED_MM_S         (15)
-#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (20)
+#define LINE_TURN_OUTER_SPEED_MM_S         (18)
+#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (24)
 
 /*
  * Sensor scores for state-machine tracking. Left score and right score are

@@ -212,11 +212,11 @@ void LineWalking(void)
     } else if ((X2 != 0U) || (X7 != 0U)) {
         turn_direction = APP_Line_Direction_From_Pair(X2, X7, error);
         if (turn_direction < 0) {
-            left_speed = LINE_TURN_INNER_SPEED_MM_S;
+            left_speed = LINE_ARC_TURN_INNER_SPEED_MM_S;
             right_speed = LINE_TURN_OUTER_SPEED_MM_S;
         } else if (turn_direction > 0) {
             left_speed = LINE_TURN_OUTER_SPEED_MM_S;
-            right_speed = LINE_TURN_INNER_SPEED_MM_S;
+            right_speed = LINE_ARC_TURN_INNER_SPEED_MM_S;
         } else {
             left_speed = LINE_BASE_SPEED_MM_S;
             right_speed = LINE_BASE_SPEED_MM_S;

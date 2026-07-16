@@ -32,12 +32,19 @@
  * Ultrasonic obstacle avoidance.
  * Wiring: TRIG = PA15, ECHO = PA17. Echo pulse width in microseconds is about
  * distance_cm * 58 for common HC-SR04-compatible modules.
+ * Obstacle signal outputs: PB19 and PB24 are driven high while an obstacle is
+ * latched, and low otherwise.
  */
-#define ULTRASONIC_STOP_DISTANCE_CM        (30U)
-#define ULTRASONIC_CLEAR_DISTANCE_CM       (35U)
+#define ULTRASONIC_STOP_DISTANCE_CM        (5U)
+#define ULTRASONIC_CLEAR_DISTANCE_CM       (8U)
 #define ULTRASONIC_TRIGGER_PULSE_US        (10U)
 #define ULTRASONIC_ECHO_TIMEOUT_US         (6000U)
 #define ULTRASONIC_UPDATE_INTERVAL_MS      (60U)
+#define ULTRASONIC_SIGNAL_PORT             (GPIOB)
+#define ULTRASONIC_SIGNAL_PB19_PIN         (DL_GPIO_PIN_19)
+#define ULTRASONIC_SIGNAL_PB19_IOMUX       (IOMUX_PINCM45)
+#define ULTRASONIC_SIGNAL_PB24_PIN         (DL_GPIO_PIN_24)
+#define ULTRASONIC_SIGNAL_PB24_IOMUX       (IOMUX_PINCM52)
 
 /*
  * IIC voice module.

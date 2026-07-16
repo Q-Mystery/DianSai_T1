@@ -18,6 +18,17 @@ static bool Ultrasonic_Echo_IsHigh(void)
     return (DL_GPIO_readPins(ULTRASONIC_PORT, ULTRASONIC_ECHO_PIN) != 0U);
 }
 
+static void Ultrasonic_SetSignalPins(bool obstacle)
+{
+    uint32_t pins = ULTRASONIC_SIGNAL_PB19_PIN | ULTRASONIC_SIGNAL_PB24_PIN;
+
+    if (obstacle) {
+        DL_GPIO_setPins(ULTRASONIC_SIGNAL_PORT, pins);
+    } else {
+        DL_GPIO_clearPins(ULTRASONIC_SIGNAL_PORT, pins);
+    }
+}
+
 void AppUltrasonic_Init(void)
 {
     memset(&g_ultrasonic_status, 0, sizeof(g_ultrasonic_status));
@@ -25,8 +36,13 @@ void AppUltrasonic_Init(void)
     DL_GPIO_initDigitalInputFeatures(ULTRASONIC_ECHO_IOMUX,
         DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_DOWN,
         DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initDigitalOutput(ULTRASONIC_SIGNAL_PB19_IOMUX);
+    DL_GPIO_initDigitalOutput(ULTRASONIC_SIGNAL_PB24_IOMUX);
     Ultrasonic_Trig_Low();
     DL_GPIO_enableOutput(ULTRASONIC_PORT, ULTRASONIC_TRIG_PIN);
+    Ultrasonic_SetSignalPins(false);
+    DL_GPIO_enableOutput(ULTRASONIC_SIGNAL_PORT,
+        ULTRASONIC_SIGNAL_PB19_PIN | ULTRASONIC_SIGNAL_PB24_PIN);
 }
 
 static bool Ultrasonic_ReadPulseUs(uint16_t *pulse_us)
@@ -73,6 +89,8 @@ void AppUltrasonic_Update(void)
 
     if (!Ultrasonic_ReadPulseUs(&pulse_us)) {
         g_ultrasonic_status.valid = false;
+        g_ultrasonic_status.obstacle = false;
+        Ultrasonic_SetSignalPins(false);
         return;
     }
 
@@ -89,6 +107,7 @@ void AppUltrasonic_Update(void)
     } else if (distance_cm >= ULTRASONIC_CLEAR_DISTANCE_CM) {
         g_ultrasonic_status.obstacle = false;
     }
+    Ultrasonic_SetSignalPins(g_ultrasonic_status.obstacle);
 }
 
 bool AppUltrasonic_IsObstacle(void)

@@ -84,8 +84,15 @@ void AppStatusDisplay_Update(void)
     } else {
         OLED_ShowString(0U, 16U, (uint8_t *)"OBS:NO", 8U, 1U);
     }
-    OLED_ShowString(48U, 16U, (uint8_t *)" V:", 8U, 1U);
-    OLED_ShowNum(66U, 16U, AppVoice_GetLastError(), 1U, 8U, 1U);
+    OLED_ShowString(48U, 16U, (uint8_t *)"D:", 8U, 1U);
+    if (ultrasonic->valid) {
+        OLED_ShowNum(60U, 16U,
+            AppDisplay_ClampDigits(ultrasonic->distance_cm, 3U), 3U, 8U, 1U);
+    } else {
+        OLED_ShowString(60U, 16U, (uint8_t *)"---", 8U, 1U);
+    }
+    OLED_ShowString(78U, 16U, (uint8_t *)"cm V:", 8U, 1U);
+    OLED_ShowNum(108U, 16U, AppVoice_GetLastError(), 1U, 8U, 1U);
 
     AppDisplay_ClearRow(3U);
     if (imu->available) {

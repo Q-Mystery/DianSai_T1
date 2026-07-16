@@ -2,10 +2,8 @@
 
 This folder adds a CCS Theia entry point for the current `IR_OLED` firmware.
 The build is intentionally explicit: only the files used by the current
-eight-channel IR/OLED target are compiled. Legacy K210, RGB, speech, IR remote,
-MPU6050 and ultrasonic sources remain in the repository, but are not part of
-this target because their BSP dependencies are not present in the current
-working tree.
+eight-channel IR/OLED target are compiled. Legacy K210, RGB, speech and IR
+remote sources remain in the repository, but are not part of this target.
 
 ## Build in CCS Theia
 
@@ -60,6 +58,10 @@ and falls back to the SDK copy bundled with this project. Set
 - `APP/app_motor.c`
 - `APP/bsp_PID_motor.c`
 - `APP/app_irtracking_eight.c`
+- `APP/app_imu.c`
+- `APP/app_status_display.c`
+- `APP/app_ultrasonic.c`
+- `APP/app_voice.c`
 - MSPM0 SDK startup file:
   `source/ti/devices/msp/m0p/startup_system_files/ticlang/startup_mspm0g350x_ticlang.c`
 

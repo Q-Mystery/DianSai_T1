@@ -149,9 +149,9 @@
  * Black-line tracking for a speed-oriented course.
  * X4 or X5 alone means "good enough, go straight" at the fast cruise speed.
  * All eight probes feed a weighted line-position error. Side probes force
- * stronger correction so the car can recover after leaving the black line:
- * X3/X6 keeps the inner wheel at 50% of the outer wheel, X2/X7 at 25%, and
- * X1/X8 stops the inner wheel.
+ * stronger correction only when the left/right side readings are unbalanced;
+ * balanced wide-line readings still go straight. Keep both wheels moving while
+ * correcting so the speed PID does not repeatedly reset from a zero command.
  */
 #define LINE_TURN_KP                       (1.20f)
 #define LINE_TURN_KD                       (0.00f)
@@ -161,11 +161,12 @@
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (8)
-#define LINE_LOST_FORWARD_CYCLES           (8U)
-#define LINE_WEIGHTED_INNER_PERCENT_SCORE1 (70U)
-#define LINE_WEIGHTED_INNER_PERCENT_SCORE2 (50U)
-#define LINE_WEIGHTED_INNER_PERCENT_SCORE3 (25U)
-#define LINE_WEIGHTED_INNER_PERCENT_SCORE4 (0U)
+#define LINE_LOST_FORWARD_CYCLES           (80U)
+#define LINE_LOST_INNER_PERCENT            (35U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE1 (75U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE2 (55U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE3 (35U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE4 (20U)
 
 /*
  * Sensor scores for state-machine tracking. Left score and right score are

@@ -152,7 +152,7 @@
  */
 #define LINE_TURN_KP                       (1.20f)
 #define LINE_TURN_KD                       (0.00f)
-#define LINE_BASE_SPEED_MM_S               (36)
+#define LINE_BASE_SPEED_MM_S               (12)
 #define LINE_CORRECTION_SPEED_MM_S         (15)
 #define LINE_SEARCH_SPEED_MM_S             (5)
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S

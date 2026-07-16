@@ -121,15 +121,15 @@
  * active brake is disabled by default because an early brake pulse can make the
  * car appear unable to track; enable it only after encoder scale is verified.
  */
-#define MOTOR_MAX_FORWARD_SPEED_MM_S       (36)
+#define MOTOR_MAX_FORWARD_SPEED_MM_S       (60)
 #define MOTOR_OVERSPEED_BRAKE_ENABLE       (0U)
 #define MOTOR_MAX_PULSES_PER_20MS          (45)
 #define MOTION_COMMAND_LIMIT_MM_S          (1000)
 #define MOTION_PERCENT_SPEED_SCALE         (10U)
 #define MOTION_SPIN_SPEED_MULTIPLIER       (5)
 #define MOTION_YAW_RATE_SCALE              (1000.0f)
-#define MOTOR_TARGET_RAMP_STEP_MM_S        (1)
-#define MOTOR_PID_PWM_LIMIT                (35.0f)
+#define MOTOR_TARGET_RAMP_STEP_MM_S        (3)
+#define MOTOR_PID_PWM_LIMIT                (55.0f)
 
 /*
  * Wheel speed PID. The same gains are applied to left and right wheels.
@@ -152,16 +152,16 @@
  */
 #define LINE_TURN_KP                       (1.20f)
 #define LINE_TURN_KD                       (0.00f)
-#define LINE_BASE_SPEED_MM_S               (18)
-#define LINE_CORRECTION_SPEED_MM_S         (18)
-#define LINE_SEARCH_SPEED_MM_S             (6)
+#define LINE_BASE_SPEED_MM_S               (28)
+#define LINE_CORRECTION_SPEED_MM_S         (28)
+#define LINE_SEARCH_SPEED_MM_S             (8)
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (8)
-#define LINE_LOST_FORWARD_CYCLES           (12U)
+#define LINE_LOST_FORWARD_CYCLES           (18U)
 #define LINE_TURN_INNER_SPEED_MM_S         (0)
-#define LINE_TURN_OUTER_SPEED_MM_S         (18)
-#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (24)
+#define LINE_TURN_OUTER_SPEED_MM_S         (28)
+#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (36)
 
 /*
  * Sensor scores for state-machine tracking. Left score and right score are

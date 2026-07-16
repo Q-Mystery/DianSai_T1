@@ -1,0 +1,34 @@
+# Build outputs
+Debug/
+Release/
+OBJ/
+Objects/
+Listings/
+keil/Listings/
+
+# Compiled and generated firmware artifacts
+*.o
+*.obj
+*.d
+*.dep
+*.elf
+*.axf
+*.out
+*.hex
+*.bin
+*.map
+
+# Tool and editor local state
+.metadata/
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+*.c text eol=lf
+*.h text eol=lf
+*.cmd text eol=lf
+*.lds text eol=lf
+*.opt text eol=lf
+*.syscfg text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.ps1 text eol=crlf
+*.sh text eol=lf
+
+*.xlsx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

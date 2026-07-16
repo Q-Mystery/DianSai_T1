@@ -1,0 +1,11 @@
+{
+  "files.exclude": {
+    "OBJ": true,
+    "keil/Listings": true
+  },
+  "search.exclude": {
+    "OBJ": true,
+    "keil/Listings": true,
+    ".git": true
+  }
+}

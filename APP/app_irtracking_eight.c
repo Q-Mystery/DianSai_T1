@@ -26,25 +26,71 @@ static int16_t Percent_Of_Speed(int16_t speed, uint8_t percent)
     return (int16_t)(((int32_t)speed * percent + 50) / 100);
 }
 
-static uint8_t APP_Line_Inner_Percent_From_Sensors(int8_t error)
+static uint8_t APP_Line_Left_Offset_Level(void)
 {
-    if (error < 0) {
-        if (X1 != 0U) {
-            return LINE_STEP_INNER_PERCENT_X1_X8;
-        }
-        if (X2 != 0U) {
-            return LINE_STEP_INNER_PERCENT_X2_X7;
-        }
-        return LINE_STEP_INNER_PERCENT_X3_X6;
+    if (X1 != 0U) {
+        return 3U;
     }
+    if (X2 != 0U) {
+        return 2U;
+    }
+    if (X3 != 0U) {
+        return 1U;
+    }
+    return 0U;
+}
 
+static uint8_t APP_Line_Right_Offset_Level(void)
+{
     if (X8 != 0U) {
-        return LINE_STEP_INNER_PERCENT_X1_X8;
+        return 3U;
     }
     if (X7 != 0U) {
+        return 2U;
+    }
+    if (X6 != 0U) {
+        return 1U;
+    }
+    return 0U;
+}
+
+static uint8_t APP_Line_Inner_Percent_From_Level(uint8_t offset_level)
+{
+    if (offset_level >= 3U) {
+        return LINE_STEP_INNER_PERCENT_X1_X8;
+    }
+    if (offset_level == 2U) {
         return LINE_STEP_INNER_PERCENT_X2_X7;
     }
     return LINE_STEP_INNER_PERCENT_X3_X6;
+}
+
+static int8_t APP_Line_Offset_Direction(int8_t error,
+                                        uint8_t left_level,
+                                        uint8_t right_level)
+{
+    if ((left_level == 0U) && (right_level == 0U)) {
+        return 0;
+    }
+    if (left_level > right_level) {
+        return -1;
+    }
+    if (right_level > left_level) {
+        return 1;
+    }
+    if (error < 0) {
+        return -1;
+    }
+    if (error > 0) {
+        return 1;
+    }
+    if (s_last_valid_error < 0) {
+        return -1;
+    }
+    if (s_last_valid_error > 0) {
+        return 1;
+    }
+    return 0;
 }
 
 static int8_t APP_Line_Error_From_Sensors(void)
@@ -121,6 +167,10 @@ void LineWalking(void)
     int16_t left_speed;
     int16_t right_speed;
     int8_t error;
+    int8_t offset_direction;
+    uint8_t left_level;
+    uint8_t right_level;
+    uint8_t correction_level;
     uint8_t i;
 
     ReadEightIR(IR_Data_number);
@@ -142,6 +192,10 @@ void LineWalking(void)
     }
 
     error = APP_Line_Error_From_Sensors();
+    left_level = APP_Line_Left_Offset_Level();
+    right_level = APP_Line_Right_Offset_Level();
+    offset_direction = APP_Line_Offset_Direction(error, left_level, right_level);
+    correction_level = (left_level > right_level) ? left_level : right_level;
 
     if (active_count == 0U) {
         s_previous_error = 0;
@@ -164,7 +218,8 @@ void LineWalking(void)
 
     s_lost_line_cycles = 0U;
 
-    if ((error >= -LINE_CENTER_DEADBAND) &&
+    if ((offset_direction == 0) &&
+        (error >= -LINE_CENTER_DEADBAND) &&
         (error <= LINE_CENTER_DEADBAND)) {
         if (s_center_straight == 0U) {
             /* Remove differential PID history left by the preceding turn. */
@@ -182,14 +237,14 @@ void LineWalking(void)
     s_last_valid_error = error;
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
 
-    if (error < 0) {
+    if (offset_direction < 0) {
         right_speed = LINE_CORRECTION_SPEED_MM_S;
         left_speed = Percent_Of_Speed(
-            right_speed, APP_Line_Inner_Percent_From_Sensors(error));
+            right_speed, APP_Line_Inner_Percent_From_Level(correction_level));
     } else {
         left_speed = LINE_CORRECTION_SPEED_MM_S;
         right_speed = Percent_Of_Speed(
-            left_speed, APP_Line_Inner_Percent_From_Sensors(error));
+            left_speed, APP_Line_Inner_Percent_From_Level(correction_level));
     }
 
     left_speed = Limit_Speed(left_speed);

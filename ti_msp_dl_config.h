@@ -197,6 +197,14 @@ extern "C" {
 /* Defines for B3: GPIOB.27 with pinCMx 58 on package pin 29 */
 #define BCD_DISPLAY_B3_PIN                                     (DL_GPIO_PIN_27)
 #define BCD_DISPLAY_B3_IOMUX                                    (IOMUX_PINCM58)
+/* Port definition for Pin Group BCD_DIGIT_SELECT */
+#define BCD_DIGIT_SELECT_PORT                                            (GPIOA)
+/* Defines for TENS: GPIOA.0 with pinCMx 1 on package pin 33 */
+#define BCD_DIGIT_SELECT_TENS_PIN                                (DL_GPIO_PIN_0)
+#define BCD_DIGIT_SELECT_TENS_IOMUX                               (IOMUX_PINCM1)
+/* Defines for ONES: GPIOA.1 with pinCMx 2 on package pin 34 */
+#define BCD_DIGIT_SELECT_ONES_PIN                                (DL_GPIO_PIN_1)
+#define BCD_DIGIT_SELECT_ONES_IOMUX                               (IOMUX_PINCM2)
 /* Port definition for Pin Group ENCODER_E1 */
 #define ENCODER_E1_PORT                                                  (GPIOB)
 

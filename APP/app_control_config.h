@@ -12,6 +12,9 @@
 #define APP_OLED_DISPLAY_DIVIDER           (250U)
 #define MOTOR_DIRECT_TEST_START_DELAY_MS   (3000U)
 
+/* Two-digit BCD 7-segment display digit select: PA0=tens, PA1=ones. */
+#define BCD_DIGIT_SELECT_ACTIVE_HIGH       (1U)
+
 /*
  * MPU6050 uses an independent software I2C bus.
  * OLED wiring stays on SCL = PA8, SDA = PA22. MPU6050 wiring is independent:

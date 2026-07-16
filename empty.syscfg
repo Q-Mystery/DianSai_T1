@@ -19,6 +19,7 @@ const GPIO8   = GPIO.addInstance();
 const GPIO9   = GPIO.addInstance();
 const GPIO10  = GPIO.addInstance();
 const GPIO11  = GPIO.addInstance();
+const GPIO12  = GPIO.addInstance();
 const PWM     = scripting.addModule("/ti/driverlib/PWM", {}, false);
 const PWM1    = PWM.addInstance();
 const SYSCTL  = scripting.addModule("/ti/driverlib/SYSCTL");
@@ -166,6 +167,20 @@ GPIO11.associatedPins[3].initialValue            = "CLEAR";
 GPIO11.associatedPins[3].assignedPin             = "27";
 GPIO11.associatedPins[3].pin.$assign             = "PB27";
 
+// Digit select for the added 2-digit BCD 7-segment display.
+// PA0 enables tens, PA1 enables ones.
+GPIO12.$name                                     = "BCD_DIGIT_SELECT";
+GPIO12.port                                      = "PORTA";
+GPIO12.associatedPins.create(2);
+GPIO12.associatedPins[0].$name                   = "TENS";
+GPIO12.associatedPins[0].initialValue            = "CLEAR";
+GPIO12.associatedPins[0].assignedPin             = "0";
+GPIO12.associatedPins[0].pin.$assign             = "PA0";
+GPIO12.associatedPins[1].$name                   = "ONES";
+GPIO12.associatedPins[1].initialValue            = "CLEAR";
+GPIO12.associatedPins[1].assignedPin             = "1";
+GPIO12.associatedPins[1].pin.$assign             = "PA1";
+
 GPIO4.$name                               = "ENCODER_E1";
 GPIO4.associatedPins.create(2);
 GPIO4.associatedPins[0].direction         = "INPUT";
@@ -302,4 +317,6 @@ GPIO11.associatedPins[0].pin.$suggestSolution      = "PB21";
 GPIO11.associatedPins[1].pin.$suggestSolution      = "PB22";
 GPIO11.associatedPins[2].pin.$suggestSolution      = "PB26";
 GPIO11.associatedPins[3].pin.$suggestSolution      = "PB27";
+GPIO12.associatedPins[0].pin.$suggestSolution      = "PA0";
+GPIO12.associatedPins[1].pin.$suggestSolution      = "PA1";
 PWM1.peripheral.$suggestSolution                   = "TIMA0";

@@ -148,8 +148,10 @@
 /*
  * Black-line tracking for a speed-oriented course.
  * X4 or X5 alone means "good enough, go straight" at the fast cruise speed.
- * Side probes use stepped differential correction: X3/X6 keeps the inner wheel
- * at 80% of the outer wheel, X2/X7 at 60%, and X1/X8 at 30%.
+ * All eight probes feed a weighted line-position error. Side probes force
+ * stronger correction so the car can recover after leaving the black line:
+ * X3/X6 keeps the inner wheel at 50% of the outer wheel, X2/X7 at 25%, and
+ * X1/X8 stops the inner wheel.
  */
 #define LINE_TURN_KP                       (1.20f)
 #define LINE_TURN_KD                       (0.00f)
@@ -160,9 +162,10 @@
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (8)
 #define LINE_LOST_FORWARD_CYCLES           (8U)
-#define LINE_STEP_INNER_PERCENT_X3_X6      (80U)
-#define LINE_STEP_INNER_PERCENT_X2_X7      (60U)
-#define LINE_STEP_INNER_PERCENT_X1_X8      (30U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE1 (70U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE2 (50U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE3 (25U)
+#define LINE_WEIGHTED_INNER_PERCENT_SCORE4 (0U)
 
 /*
  * Sensor scores for state-machine tracking. Left score and right score are

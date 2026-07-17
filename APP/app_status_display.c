@@ -127,8 +127,8 @@ void AppStatusDisplay_Update(void)
     OLED_ShowString(0U, 8U, (uint8_t *)"D:", 8U, 1U);
     next_x = AppDisplay_ShowUnsigned(12U, 8U, travel_cm, 5U);
     OLED_ShowString(next_x, 8U, (uint8_t *)"cm", 8U, 1U);
-    OLED_ShowString(78U, 8U, (uint8_t *)"ARC:", 8U, 1U);
-    OLED_ShowNum(102U, 8U, mission->arc_count, 1U, 8U, 1U);
+    OLED_ShowString(78U, 8U, (uint8_t *)"E:", 8U, 1U);
+    AppDisplay_ShowUnsigned(90U, 8U, avg_counts, 5U);
 
     AppDisplay_ClearRow(2U);
     if (ultrasonic->obstacle) {

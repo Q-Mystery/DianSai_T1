@@ -117,26 +117,37 @@ static void Mission_UpdateWaitCurve(uint32_t dt_ms)
 {
     int32_t rate = g_track_mission.yaw_rate_filtered_x10;
     int32_t abs_rate = Mission_Abs32(rate);
+    int32_t delta_x10;
     int32_t main_angle_x10;
     int32_t counter_angle_x10;
     int32_t total_angle_x10;
     int32_t net_angle_x10;
     int8_t sign;
 
-    if ((s_candidate_window_ms == 0U) &&
-        (abs_rate < TRACK_MISSION_ENTER_RATE_X10)) {
+    if (abs_rate < TRACK_MISSION_ENTER_RATE_X10) {
+        Mission_ResetCandidate();
         return;
     }
 
     sign = Mission_Sign(rate);
-    if (abs_rate >= TRACK_MISSION_GYRO_DEADBAND_X10) {
-        int32_t delta_x10 = Mission_AngleDeltaX10(abs_rate, dt_ms);
+    if (sign == 0) {
+        Mission_ResetCandidate();
+        return;
+    }
 
-        if (sign > 0) {
-            s_candidate_positive_angle_x10 += delta_x10;
-        } else if (sign < 0) {
-            s_candidate_negative_angle_x10 += delta_x10;
-        }
+    if ((s_candidate_direction != 0) &&
+        (sign != s_candidate_direction)) {
+        Mission_ResetCandidate();
+    }
+    if (s_candidate_direction == 0) {
+        s_candidate_direction = sign;
+    }
+
+    delta_x10 = Mission_AngleDeltaX10(abs_rate, dt_ms);
+    if (sign > 0) {
+        s_candidate_positive_angle_x10 += delta_x10;
+    } else {
+        s_candidate_negative_angle_x10 += delta_x10;
     }
 
     s_candidate_window_ms += dt_ms;
@@ -197,9 +208,7 @@ static void Mission_UpdateArcExit(uint32_t dt_ms)
         s_exit_stable_ms = 0U;
     }
 
-    if ((s_exit_stable_ms < TRACK_MISSION_ARC_EXIT_CONFIRM_MS) &&
-        (g_track_mission.state_elapsed_ms <
-         TRACK_MISSION_ARC_EXIT_MAX_WAIT_MS)) {
+    if (s_exit_stable_ms < TRACK_MISSION_ARC_EXIT_CONFIRM_MS) {
         return;
     }
 

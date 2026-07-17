@@ -17,12 +17,17 @@ static uint8_t s_turn_latch_hard;
 static uint8_t s_recent_turn_recovery;
 static uint8_t s_right_recovery_active;
 static uint8_t s_lost_reacquire_cycles;
+static int16_t s_fast_line_speed;
+static uint16_t s_fast_ramp_cycles;
 
 #define LINE_FAST_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_TURN_LATCH_CYCLES \
     ((uint16_t)((LINE_TURN_LATCH_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+                APP_MAIN_LOOP_DELAY_MS))
+#define LINE_FAST_RAMP_STEP_CYCLES \
+    ((uint16_t)((LINE_FAST_RAMP_STEP_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_LOST_RECOVERY_CYCLES \
     ((uint16_t)((LINE_LOST_RECOVERY_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
@@ -113,6 +118,36 @@ static uint8_t APP_Line_Center_Window_Stable(int8_t error,
 static uint8_t APP_Line_Right_Reacquire_Seen(void)
 {
     return (uint8_t)(X4 || X5 || X6 || X7 || X8);
+}
+
+static void APP_Line_Reset_Fast_Ramp(void)
+{
+    s_fast_line_speed = LINE_BASE_SPEED_MM_S;
+    s_fast_ramp_cycles = 0U;
+}
+
+static int16_t APP_Line_Update_Fast_Ramp(void)
+{
+    if (s_fast_line_speed < LINE_BASE_SPEED_MM_S) {
+        s_fast_line_speed = LINE_BASE_SPEED_MM_S;
+    }
+
+    if (s_fast_line_speed >= LINE_FAST_SPEED_MM_S) {
+        return LINE_FAST_SPEED_MM_S;
+    }
+
+    if (s_fast_ramp_cycles < LINE_FAST_RAMP_STEP_CYCLES) {
+        s_fast_ramp_cycles++;
+    } else {
+        s_fast_ramp_cycles = 0U;
+        s_fast_line_speed = (int16_t)(s_fast_line_speed +
+                                      LINE_FAST_RAMP_STEP_MM_S);
+        if (s_fast_line_speed > LINE_FAST_SPEED_MM_S) {
+            s_fast_line_speed = LINE_FAST_SPEED_MM_S;
+        }
+    }
+
+    return s_fast_line_speed;
 }
 
 static int8_t APP_Line_Direction_From_Pair(uint8_t left_sensor,
@@ -337,6 +372,7 @@ void LineWalking(void)
             /* Remove differential PID history left by the preceding turn. */
             PID_Clear_Motor(MAX_MOTOR);
             s_center_straight = 1U;
+            APP_Line_Reset_Fast_Ramp();
         }
         fast_stable_target = (s_recent_turn_recovery != 0U) ?
                                  LINE_FAST_AFTER_TURN_STABLE_CYCLES :
@@ -349,9 +385,11 @@ void LineWalking(void)
         pid_output_IRR = 0;
         if (s_center_stable_cycles >= fast_stable_target) {
             s_recent_turn_recovery = 0U;
+            base_speed = APP_Line_Update_Fast_Ramp();
+        } else {
+            APP_Line_Reset_Fast_Ramp();
+            base_speed = LINE_BASE_SPEED_MM_S;
         }
-        base_speed = (s_center_stable_cycles >= fast_stable_target) ?
-                         LINE_FAST_SPEED_MM_S : LINE_BASE_SPEED_MM_S;
         Motion_Set_Speed(base_speed, base_speed);
         return;
     }

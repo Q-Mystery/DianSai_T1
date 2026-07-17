@@ -202,6 +202,8 @@
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (60)
 #define LINE_FAST_STABLE_MS                (100U)
+#define LINE_FAST_RAMP_STEP_MM_S           (10)
+#define LINE_FAST_RAMP_STEP_MS             (150U)
 #define LINE_TURN_LATCH_MS                 (80U)
 #define LINE_LOST_BRAKE_MS                 (60U)
 #define LINE_LOST_RECOVERY_MS              (560U)

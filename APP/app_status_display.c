@@ -1,6 +1,7 @@
 #include "app_status_display.h"
 #include "AllHeader.h"
 #include "app_imu.h"
+#include "app_track_mission.h"
 #include "app_ultrasonic.h"
 #include "app_voice.h"
 
@@ -123,6 +124,7 @@ void AppStatusDisplay_Update(void)
     uint32_t avg_speed_tenths_cm_s;
     uint8_t next_x;
     const AppIMU_Status_t *imu = AppIMU_GetStatus();
+    const AppTrackMission_Status_t *mission = AppTrackMission_GetStatus();
     const AppUltrasonic_Status_t *ultrasonic = AppUltrasonic_GetStatus();
 
     Motion_Get_Motor_Speed(wheel_speed);
@@ -143,6 +145,8 @@ void AppStatusDisplay_Update(void)
     OLED_ShowString(0U, 8U, (uint8_t *)"D:", 8U, 1U);
     next_x = AppDisplay_ShowUnsigned(12U, 8U, travel_cm, 5U);
     OLED_ShowString(next_x, 8U, (uint8_t *)"cm", 8U, 1U);
+    OLED_ShowString(78U, 8U, (uint8_t *)"ARC:", 8U, 1U);
+    OLED_ShowNum(102U, 8U, mission->arc_count, 1U, 8U, 1U);
 
     AppDisplay_ClearRow(2U);
     if (ultrasonic->obstacle) {

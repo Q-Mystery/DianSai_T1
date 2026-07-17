@@ -24,12 +24,23 @@ static uint32_t Mission_EncoderAvgAbsCounts(void)
     int encoder_counts[2] = {0, 0};
     uint32_t left_counts;
     uint32_t right_counts;
+    uint32_t sum = 0U;
+    uint8_t count = 0U;
 
     Encoder_Get_ALL(encoder_counts);
     left_counts = (uint32_t)Mission_Abs32(encoder_counts[0]);
     right_counts = (uint32_t)Mission_Abs32(encoder_counts[1]);
 
-    return (left_counts + right_counts) / 2U;
+    if (left_counts != 0U) {
+        sum += left_counts;
+        count++;
+    }
+    if (right_counts != 0U) {
+        sum += right_counts;
+        count++;
+    }
+
+    return (count == 0U) ? 0U : (sum / count);
 }
 
 static bool Mission_EncoderStopReached(void)

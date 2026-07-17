@@ -89,6 +89,24 @@ static uint32_t AppDisplay_CountsToCm(uint32_t counts)
     return (uint32_t)(distance_cm + 0.5f);
 }
 
+static uint32_t AppDisplay_EncoderStatsCounts(
+    uint32_t left_counts, uint32_t right_counts)
+{
+    uint32_t sum = 0U;
+    uint8_t count = 0U;
+
+    if (left_counts != 0U) {
+        sum += left_counts;
+        count++;
+    }
+    if (right_counts != 0U) {
+        sum += right_counts;
+        count++;
+    }
+
+    return (count == 0U) ? 0U : (sum / count);
+}
+
 static void AppDisplay_ClearRow(uint8_t row)
 {
     OLED_ShowString(0U, (uint8_t)(row * 8U),
@@ -100,8 +118,10 @@ void AppStatusDisplay_Update(void)
     int *encoder_counts = (int *)Motion_Get_Data(1U);
     uint32_t left_counts = AppDisplay_Abs32(encoder_counts[0]);
     uint32_t right_counts = AppDisplay_Abs32(encoder_counts[1]);
-    uint32_t avg_counts = (left_counts + right_counts) / 2U;
-    uint32_t travel_cm = AppDisplay_CountsToCm(avg_counts);
+    uint32_t distance_counts = (left_counts + right_counts) / 2U;
+    uint32_t encoder_stats_counts =
+        AppDisplay_EncoderStatsCounts(left_counts, right_counts);
+    uint32_t travel_cm = AppDisplay_CountsToCm(distance_counts);
     float wheel_speed[2] = {0.0f, 0.0f};
     int16_t avg_speed_mm_s;
     uint32_t avg_speed_tenths_cm_s;
@@ -128,7 +148,7 @@ void AppStatusDisplay_Update(void)
     next_x = AppDisplay_ShowUnsigned(12U, 8U, travel_cm, 5U);
     OLED_ShowString(next_x, 8U, (uint8_t *)"cm", 8U, 1U);
     OLED_ShowString(78U, 8U, (uint8_t *)"E:", 8U, 1U);
-    AppDisplay_ShowUnsigned(90U, 8U, avg_counts, 5U);
+    AppDisplay_ShowUnsigned(90U, 8U, encoder_stats_counts, 5U);
 
     AppDisplay_ClearRow(2U);
     if (ultrasonic->obstacle) {

@@ -14,6 +14,7 @@ static uint16_t s_lost_line_cycles;
 static int8_t s_turn_latch_direction;
 static int8_t s_last_line_direction;
 static uint8_t s_turn_latch_hard;
+static uint8_t s_recent_turn_recovery;
 
 #define LINE_FAST_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
@@ -23,6 +24,9 @@ static uint8_t s_turn_latch_hard;
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_LOST_RECOVERY_CYCLES \
     ((uint16_t)((LINE_LOST_RECOVERY_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+                APP_MAIN_LOOP_DELAY_MS))
+#define LINE_FAST_AFTER_TURN_STABLE_CYCLES \
+    ((uint16_t)((LINE_FAST_AFTER_TURN_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 
 static int16_t Limit_Wheel_Speed(int16_t speed)
@@ -76,6 +80,7 @@ static void APP_Line_Arm_Turn_Latch(int8_t direction, uint8_t hard)
     s_turn_latch_direction = direction;
     s_turn_latch_cycles = LINE_TURN_LATCH_CYCLES;
     s_turn_latch_hard = hard;
+    s_recent_turn_recovery = 1U;
     APP_Line_Remember_Direction(direction);
 }
 
@@ -211,6 +216,7 @@ void LineWalking(void)
     int16_t base_speed;
     int16_t turn_delta;
     int16_t trim;
+    uint16_t fast_stable_target;
     int8_t turn_direction;
     int8_t error;
     uint8_t i;
@@ -250,6 +256,7 @@ void LineWalking(void)
                 turn_direction = APP_Line_Sign(s_last_valid_error);
             }
             if (turn_direction != 0) {
+                s_recent_turn_recovery = 1U;
                 APP_Line_Set_Differential(turn_direction,
                                           LINE_LOST_RECOVERY_INNER_SPEED_MM_S,
                                           LINE_LOST_RECOVERY_OUTER_SPEED_MM_S,
@@ -302,13 +309,19 @@ void LineWalking(void)
             PID_Clear_Motor(MAX_MOTOR);
             s_center_straight = 1U;
         }
-        if (s_center_stable_cycles < LINE_FAST_STABLE_CYCLES) {
+        fast_stable_target = (s_recent_turn_recovery != 0U) ?
+                                 LINE_FAST_AFTER_TURN_STABLE_CYCLES :
+                                 LINE_FAST_STABLE_CYCLES;
+        if (s_center_stable_cycles < fast_stable_target) {
             s_center_stable_cycles++;
         }
         s_last_valid_error = error;
         APP_Line_Remember_Direction(APP_Line_Sign(error));
         pid_output_IRR = 0;
-        base_speed = (s_center_stable_cycles >= LINE_FAST_STABLE_CYCLES) ?
+        if (s_center_stable_cycles >= fast_stable_target) {
+            s_recent_turn_recovery = 0U;
+        }
+        base_speed = (s_center_stable_cycles >= fast_stable_target) ?
                          LINE_FAST_SPEED_MM_S : LINE_BASE_SPEED_MM_S;
         Motion_Set_Speed(base_speed, base_speed);
         return;

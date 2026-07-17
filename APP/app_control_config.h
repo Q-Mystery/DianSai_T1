@@ -112,14 +112,14 @@
  * MOTOR_PWM_MAX_DUTY must match the SysConfig PWM period. MOTOR_PWM_DEAD_ZONE
  * is added only after a non-zero PID output so the motor can overcome static
  * friction without making a zero command move the wheel. The motor supply is
- * 7.2 V; the target average drive voltage below caps normal forward drive at
- * 5.0 V while still keeping zero commands stopped.
+ * 7.4 V; the target average drive voltage below caps normal forward drive at
+ * 7.4 V while still keeping zero commands stopped.
  */
 #define MOTOR_PWM_MAX_DUTY                 (1000)
 #define MOTOR_PWM_COMPARE_INVERTED         (1U)
 #define MOTOR_PWM_DEAD_ZONE                (160)
-#define MOTOR_SUPPLY_MV                    (7200U)
-#define MOTOR_TARGET_MAX_AVERAGE_MV        (5000U)
+#define MOTOR_SUPPLY_MV                    (7400U)
+#define MOTOR_TARGET_MAX_AVERAGE_MV        (7400U)
 #define MOTOR_TARGET_EFFECTIVE_PWM_DUTY_RAW \
     (((MOTOR_TARGET_MAX_AVERAGE_MV * MOTOR_PWM_MAX_DUTY) + \
       (MOTOR_SUPPLY_MV / 2U)) / MOTOR_SUPPLY_MV)

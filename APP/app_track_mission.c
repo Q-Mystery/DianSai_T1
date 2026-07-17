@@ -19,6 +19,24 @@ static int32_t Mission_Abs32(int32_t value)
     return (value < 0) ? -value : value;
 }
 
+static uint32_t Mission_EncoderAvgAbsCounts(void)
+{
+    int encoder_counts[2] = {0, 0};
+    uint32_t left_counts;
+    uint32_t right_counts;
+
+    Encoder_Get_ALL(encoder_counts);
+    left_counts = (uint32_t)Mission_Abs32(encoder_counts[0]);
+    right_counts = (uint32_t)Mission_Abs32(encoder_counts[1]);
+
+    return (left_counts + right_counts) / 2U;
+}
+
+static bool Mission_EncoderStopReached(void)
+{
+    return Mission_EncoderAvgAbsCounts() >= TRACK_MISSION_ENCODER_STOP_COUNTS;
+}
+
 static int8_t Mission_Sign(int32_t value)
 {
     if (value > 0) {
@@ -253,6 +271,10 @@ void AppTrackMission_Update(void)
 {
     uint32_t dt_ms = 0U;
     bool new_imu_sample;
+
+    if (Mission_EncoderStopReached()) {
+        Mission_SetState(APP_TRACK_STOPPED);
+    }
 
     if (g_track_mission.state == APP_TRACK_STOPPED) {
         Mission_StopOnce();

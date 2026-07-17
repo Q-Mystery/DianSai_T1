@@ -34,31 +34,6 @@ static int8_t APP_Line_Error_From_Sensors(void)
     return (int8_t)(right_score - left_score);
 }
 
-static int8_t APP_Line_Direction_From_Pair(uint8_t left_sensor,
-                                           uint8_t right_sensor,
-                                           int8_t error)
-{
-    if ((left_sensor != 0U) && (right_sensor == 0U)) {
-        return -1;
-    }
-    if ((right_sensor != 0U) && (left_sensor == 0U)) {
-        return 1;
-    }
-    if (error < 0) {
-        return -1;
-    }
-    if (error > 0) {
-        return 1;
-    }
-    if (s_last_valid_error < 0) {
-        return -1;
-    }
-    if (s_last_valid_error > 0) {
-        return 1;
-    }
-    return 0;
-}
-
 float APP_HD_PID_Calc(int8_t actual_value)
 {
     float output;
@@ -120,7 +95,6 @@ void LineWalking(void)
     int16_t left_speed;
     int16_t right_speed;
     int8_t error;
-    int8_t turn_direction;
     uint8_t i;
 
     ReadEightIR(IR_Data_number);
@@ -166,19 +140,6 @@ void LineWalking(void)
 
     s_lost_line_cycles = 0U;
 
-    if (((X4 != 0U) || (X5 != 0U)) &&
-        ((X1 == 0U) && (X2 == 0U) && (X7 == 0U) && (X8 == 0U))) {
-        if (s_center_straight == 0U) {
-            PID_Clear_Motor(MAX_MOTOR);
-            s_center_straight = 1U;
-        }
-        s_last_valid_error = error;
-        s_previous_error = 0;
-        pid_output_IRR = 0;
-        Motion_Set_Speed(LINE_BASE_SPEED_MM_S, LINE_BASE_SPEED_MM_S);
-        return;
-    }
-
     if ((error >= -LINE_CENTER_DEADBAND) &&
         (error <= LINE_CENTER_DEADBAND)) {
         if (s_center_straight == 0U) {
@@ -197,43 +158,7 @@ void LineWalking(void)
     s_last_valid_error = error;
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
 
-    if ((X1 != 0U) || (X8 != 0U)) {
-        turn_direction = APP_Line_Direction_From_Pair(X1, X8, error);
-        if (turn_direction < 0) {
-            left_speed = LINE_TURN_INNER_SPEED_MM_S;
-            right_speed = LINE_HARD_TURN_OUTER_SPEED_MM_S;
-        } else if (turn_direction > 0) {
-            left_speed = LINE_HARD_TURN_OUTER_SPEED_MM_S;
-            right_speed = LINE_TURN_INNER_SPEED_MM_S;
-        } else {
-            left_speed = LINE_BASE_SPEED_MM_S;
-            right_speed = LINE_BASE_SPEED_MM_S;
-        }
-    } else if ((X2 != 0U) || (X7 != 0U)) {
-        turn_direction = APP_Line_Direction_From_Pair(X2, X7, error);
-        if (turn_direction < 0) {
-            left_speed = LINE_ARC_TURN_INNER_SPEED_MM_S;
-            right_speed = LINE_TURN_OUTER_SPEED_MM_S;
-        } else if (turn_direction > 0) {
-            left_speed = LINE_TURN_OUTER_SPEED_MM_S;
-            right_speed = LINE_ARC_TURN_INNER_SPEED_MM_S;
-        } else {
-            left_speed = LINE_BASE_SPEED_MM_S;
-            right_speed = LINE_BASE_SPEED_MM_S;
-        }
-    } else if ((X3 != 0U) || (X6 != 0U)) {
-        turn_direction = APP_Line_Direction_From_Pair(X3, X6, error);
-        if (turn_direction < 0) {
-            left_speed = LINE_SOFT_TURN_INNER_SPEED_MM_S;
-            right_speed = LINE_SOFT_TURN_OUTER_SPEED_MM_S;
-        } else if (turn_direction > 0) {
-            left_speed = LINE_SOFT_TURN_OUTER_SPEED_MM_S;
-            right_speed = LINE_SOFT_TURN_INNER_SPEED_MM_S;
-        } else {
-            left_speed = LINE_BASE_SPEED_MM_S;
-            right_speed = LINE_BASE_SPEED_MM_S;
-        }
-    } else if (error < 0) {
+    if (error < 0) {
         left_speed = LINE_TURN_INNER_SPEED_MM_S;
         right_speed = (myabs(error) >= 5) ?
                           LINE_HARD_TURN_OUTER_SPEED_MM_S :

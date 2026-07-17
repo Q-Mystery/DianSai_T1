@@ -124,23 +124,23 @@
  * active brake is disabled by default because an early brake pulse can make the
  * car appear unable to track; enable it only after encoder scale is verified.
  */
-#define MOTOR_MAX_FORWARD_SPEED_MM_S       (220)
+#define MOTOR_MAX_FORWARD_SPEED_MM_S       (36)
 #define MOTOR_OVERSPEED_BRAKE_ENABLE       (0U)
 #define MOTOR_MAX_PULSES_PER_20MS          (45)
 #define MOTION_COMMAND_LIMIT_MM_S          (1000)
 #define MOTION_PERCENT_SPEED_SCALE         (10U)
 #define MOTION_SPIN_SPEED_MULTIPLIER       (5)
 #define MOTION_YAW_RATE_SCALE              (1000.0f)
-#define MOTOR_TARGET_RAMP_STEP_MM_S        (10)
-#define MOTOR_PID_PWM_LIMIT                (260.0f)
+#define MOTOR_TARGET_RAMP_STEP_MM_S        (1)
+#define MOTOR_PID_PWM_LIMIT                (35.0f)
 
 /*
  * Wheel speed PID. The same gains are applied to left and right wheels.
  * Increase KP if speed response is too slow; increase KI only after the car can
  * already follow the line without large oscillation.
  */
-#define MOTOR_SPEED_PID_KP                 (0.35f)
-#define MOTOR_SPEED_PID_KI                 (0.008f)
+#define MOTOR_SPEED_PID_KP                 (0.20f)
+#define MOTOR_SPEED_PID_KI                 (0.000f)
 #define MOTOR_SPEED_PID_KD                 (0.00f)
 
 /* Optional yaw PID used by legacy IMU-assisted movement functions. */
@@ -155,19 +155,16 @@
  */
 #define LINE_TURN_KP                       (1.20f)
 #define LINE_TURN_KD                       (0.00f)
-#define LINE_BASE_SPEED_MM_S               (130)
-#define LINE_CORRECTION_SPEED_MM_S         (95)
-#define LINE_SEARCH_SPEED_MM_S             (16)
+#define LINE_BASE_SPEED_MM_S               (12)
+#define LINE_CORRECTION_SPEED_MM_S         (15)
+#define LINE_SEARCH_SPEED_MM_S             (5)
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (8)
-#define LINE_LOST_FORWARD_CYCLES           (20U)
+#define LINE_LOST_FORWARD_CYCLES           (8U)
 #define LINE_TURN_INNER_SPEED_MM_S         (0)
-#define LINE_SOFT_TURN_INNER_SPEED_MM_S    (85)
-#define LINE_SOFT_TURN_OUTER_SPEED_MM_S    (130)
-#define LINE_ARC_TURN_INNER_SPEED_MM_S     (25)
-#define LINE_TURN_OUTER_SPEED_MM_S         (95)
-#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (75)
+#define LINE_TURN_OUTER_SPEED_MM_S         (15)
+#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (20)
 
 /*
  * Sensor scores for state-machine tracking. Left score and right score are
@@ -181,20 +178,5 @@
 #define LINE_SCORE_X6                      (2U)
 #define LINE_SCORE_X7                      (3U)
 #define LINE_SCORE_X8                      (4U)
-
-/*
- * A-B-C-D two-lap oval mission.
- * The car still follows the black line with the eight-channel grayscale
- * sensors. Encoders provide lap distance and the MPU6050 Z gyro confirms the
- * two 180-degree arcs. Wheel diameter is 48 mm, so MECANUM_CIRCLE_MM already
- * matches pi * 48.
- */
-#define TRACK_MISSION_TARGET_LAPS          (2U)
-#define TRACK_MISSION_STRAIGHT_MM          (2000U)
-#define TRACK_MISSION_ARC_LENGTH_MM        (1885U)
-#define TRACK_MISSION_STRAIGHT_CURVE_GATE_MM (1900U)
-#define TRACK_MISSION_DISTANCE_MARGIN_MM   (180U)
-#define TRACK_MISSION_ARC_YAW_CONFIRM_X10  (1500)
-#define TRACK_MISSION_YAW_RATE_GATE_X10    (80)
 
 #endif

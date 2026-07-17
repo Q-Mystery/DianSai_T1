@@ -9,10 +9,20 @@ static int16_t s_last_valid_error;
 static int8_t s_previous_error;
 static uint8_t s_center_straight;
 static uint16_t s_center_stable_cycles;
+static uint16_t s_turn_latch_cycles;
 static uint16_t s_lost_line_cycles;
+static int8_t s_turn_latch_direction;
+static int8_t s_last_line_direction;
+static uint8_t s_turn_latch_hard;
 
 #define LINE_FAST_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+                APP_MAIN_LOOP_DELAY_MS))
+#define LINE_TURN_LATCH_CYCLES \
+    ((uint16_t)((LINE_TURN_LATCH_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+                APP_MAIN_LOOP_DELAY_MS))
+#define LINE_LOST_RECOVERY_CYCLES \
+    ((uint16_t)((LINE_LOST_RECOVERY_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 
 static int16_t Limit_Wheel_Speed(int16_t speed)
@@ -39,14 +49,55 @@ static int8_t APP_Line_Error_From_Sensors(void)
     return (int8_t)(right_score - left_score);
 }
 
-static uint8_t APP_Line_Center_Window_Stable(int8_t error)
+static int8_t APP_Line_Sign(int16_t value)
+{
+    if (value < 0) {
+        return -1;
+    }
+    if (value > 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static void APP_Line_Remember_Direction(int8_t direction)
+{
+    if (direction != 0) {
+        s_last_line_direction = direction;
+    }
+}
+
+static void APP_Line_Arm_Turn_Latch(int8_t direction, uint8_t hard)
+{
+    if (direction == 0) {
+        return;
+    }
+
+    s_turn_latch_direction = direction;
+    s_turn_latch_cycles = LINE_TURN_LATCH_CYCLES;
+    s_turn_latch_hard = hard;
+    APP_Line_Remember_Direction(direction);
+}
+
+static void APP_Line_Clear_Turn_Latch(void)
+{
+    s_turn_latch_cycles = 0U;
+    s_turn_latch_direction = 0;
+    s_turn_latch_hard = 0U;
+}
+
+static uint8_t APP_Line_Center_Window_Stable(int8_t error,
+                                             uint8_t active_count)
 {
     uint8_t center_active = (uint8_t)(X4 || X5);
-    uint8_t outer_clear = (uint8_t)((X1 == 0U) && (X8 == 0U));
+    uint8_t side_clear = (uint8_t)((X1 == 0U) && (X2 == 0U) &&
+                                  (X3 == 0U) && (X6 == 0U) &&
+                                  (X7 == 0U) && (X8 == 0U));
     uint8_t centered = (uint8_t)((error >= -LINE_CENTER_DEADBAND) &&
                                 (error <= LINE_CENTER_DEADBAND));
 
-    return (uint8_t)(center_active && outer_clear && centered);
+    return (uint8_t)(center_active && side_clear && centered &&
+                     (active_count <= 2U));
 }
 
 static int8_t APP_Line_Direction_From_Pair(uint8_t left_sensor,
@@ -189,17 +240,22 @@ void LineWalking(void)
         s_center_stable_cycles = 0U;
         s_center_straight = 0U;
         pid_output_IRR = 0;
-        if (s_lost_line_cycles < LINE_LOST_FORWARD_CYCLES) {
+        if (s_lost_line_cycles < LINE_LOST_RECOVERY_CYCLES) {
             s_lost_line_cycles++;
-            if (s_last_valid_error < 0) {
-                Motion_Set_Speed(LINE_TURN_INNER_SPEED_MM_S,
-                                 LINE_SEARCH_SPEED_MM_S);
-            } else if (s_last_valid_error > 0) {
-                Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S,
-                                 LINE_TURN_INNER_SPEED_MM_S);
+            turn_direction = s_last_line_direction;
+            if (turn_direction == 0) {
+                turn_direction = s_turn_latch_direction;
+            }
+            if (turn_direction == 0) {
+                turn_direction = APP_Line_Sign(s_last_valid_error);
+            }
+            if (turn_direction != 0) {
+                APP_Line_Set_Differential(turn_direction,
+                                          LINE_LOST_RECOVERY_INNER_SPEED_MM_S,
+                                          LINE_LOST_RECOVERY_OUTER_SPEED_MM_S,
+                                          0);
             } else {
-                Motion_Set_Speed(LINE_SEARCH_SPEED_MM_S,
-                                 LINE_SEARCH_SPEED_MM_S);
+                Motion_Set_Speed(0, 0);
             }
         } else {
             Motion_Set_Speed(0, 0);
@@ -208,23 +264,49 @@ void LineWalking(void)
     }
 
     s_lost_line_cycles = 0U;
+    pid_output_IRR = (int)APP_HD_PID_Calc(error);
+    trim = (int16_t)(myabs(pid_output_IRR) / LINE_PD_TRIM_DIVISOR);
+
+    if ((X1 != 0U) || (X8 != 0U)) {
+        turn_direction = APP_Line_Direction_From_Pair(X1, X8, error);
+        APP_Line_Arm_Turn_Latch(turn_direction, 1U);
+        s_center_straight = 0U;
+        s_center_stable_cycles = 0U;
+        s_last_valid_error = error;
+        APP_Line_Set_Differential(turn_direction,
+                                  LINE_HARD_TURN_INNER_SPEED_MM_S,
+                                  LINE_HARD_TURN_OUTER_SPEED_MM_S,
+                                  trim);
+        return;
+    }
+
+    if ((X2 != 0U) || (X7 != 0U)) {
+        turn_direction = APP_Line_Direction_From_Pair(X2, X7, error);
+        APP_Line_Arm_Turn_Latch(turn_direction, 0U);
+        s_center_straight = 0U;
+        s_center_stable_cycles = 0U;
+        s_last_valid_error = error;
+        APP_Line_Set_Differential(turn_direction,
+                                  LINE_MEDIUM_TURN_INNER_SPEED_MM_S,
+                                  LINE_MEDIUM_TURN_OUTER_SPEED_MM_S,
+                                  trim);
+        return;
+    }
 
     if ((error >= -LINE_CENTER_DEADBAND) &&
-        (error <= LINE_CENTER_DEADBAND)) {
+        (error <= LINE_CENTER_DEADBAND) &&
+        (APP_Line_Center_Window_Stable(error, active_count) != 0U)) {
+        APP_Line_Clear_Turn_Latch();
         if (s_center_straight == 0U) {
             /* Remove differential PID history left by the preceding turn. */
             PID_Clear_Motor(MAX_MOTOR);
             s_center_straight = 1U;
         }
-        if (APP_Line_Center_Window_Stable(error) != 0U) {
-            if (s_center_stable_cycles < LINE_FAST_STABLE_CYCLES) {
-                s_center_stable_cycles++;
-            }
-        } else {
-            s_center_stable_cycles = 0U;
+        if (s_center_stable_cycles < LINE_FAST_STABLE_CYCLES) {
+            s_center_stable_cycles++;
         }
         s_last_valid_error = error;
-        s_previous_error = 0;
+        APP_Line_Remember_Direction(APP_Line_Sign(error));
         pid_output_IRR = 0;
         base_speed = (s_center_stable_cycles >= LINE_FAST_STABLE_CYCLES) ?
                          LINE_FAST_SPEED_MM_S : LINE_BASE_SPEED_MM_S;
@@ -235,24 +317,25 @@ void LineWalking(void)
     s_center_straight = 0U;
     s_center_stable_cycles = 0U;
     s_last_valid_error = error;
-    pid_output_IRR = (int)APP_HD_PID_Calc(error);
-    trim = (int16_t)(myabs(pid_output_IRR) / LINE_PD_TRIM_DIVISOR);
 
-    if ((X1 != 0U) || (X8 != 0U)) {
-        turn_direction = APP_Line_Direction_From_Pair(X1, X8, error);
-        APP_Line_Set_Differential(turn_direction,
-                                  LINE_HARD_TURN_INNER_SPEED_MM_S,
-                                  LINE_HARD_TURN_OUTER_SPEED_MM_S,
-                                  trim);
-        return;
-    }
-
-    if ((X2 != 0U) || (X7 != 0U)) {
-        turn_direction = APP_Line_Direction_From_Pair(X2, X7, error);
-        APP_Line_Set_Differential(turn_direction,
-                                  LINE_MEDIUM_TURN_INNER_SPEED_MM_S,
-                                  LINE_MEDIUM_TURN_OUTER_SPEED_MM_S,
-                                  trim);
+    if (s_turn_latch_cycles > 0U) {
+        s_turn_latch_cycles--;
+        turn_direction = s_turn_latch_direction;
+        if (turn_direction == 0) {
+            turn_direction = APP_Line_Direction_From_Pair(0U, 0U, error);
+        }
+        if (s_turn_latch_hard != 0U) {
+            APP_Line_Set_Differential(turn_direction,
+                                      LINE_HARD_TURN_INNER_SPEED_MM_S,
+                                      LINE_HARD_TURN_OUTER_SPEED_MM_S,
+                                      trim);
+        } else {
+            APP_Line_Set_Differential(turn_direction,
+                                      LINE_MEDIUM_TURN_INNER_SPEED_MM_S,
+                                      LINE_MEDIUM_TURN_OUTER_SPEED_MM_S,
+                                      trim);
+        }
+        APP_Line_Remember_Direction(turn_direction);
         return;
     }
 
@@ -262,8 +345,10 @@ void LineWalking(void)
                                   LINE_SOFT_TURN_INNER_SPEED_MM_S,
                                   LINE_SOFT_TURN_OUTER_SPEED_MM_S,
                                   trim);
+        APP_Line_Remember_Direction(turn_direction);
         return;
     }
+    APP_Line_Remember_Direction(APP_Line_Sign(error));
 
     /*
      * Negative error means the line is left, so the left wheel must slow down.

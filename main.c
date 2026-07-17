@@ -3,6 +3,7 @@
 #include "app_control_config.h"
 #include "app_imu.h"
 #include "app_status_display.h"
+#include "app_track_mission.h"
 #include "app_ultrasonic.h"
 #include "app_voice.h"
 
@@ -28,6 +29,7 @@ int main(void)
     PID_Set_Motor_Parm(1U, MOTOR_SPEED_PID_KP, MOTOR_SPEED_PID_KI,
                        MOTOR_SPEED_PID_KD);
     encoder_init();
+    AppTrackMission_Init();
 
     while (1) {
         AppBCDDisplay_Update();
@@ -37,7 +39,7 @@ int main(void)
             Motion_Stop(STOP_BRAKE);
             (void)AppVoice_TriggerObstacle();
         } else {
-            LineWalking();
+            AppTrackMission_Update();
         }
         if (obstacle_now != obstacle_last) {
             display_divider = APP_OLED_DISPLAY_DIVIDER;

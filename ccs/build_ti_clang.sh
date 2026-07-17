@@ -128,6 +128,7 @@ SOURCES=(
     "$PROJECT_ROOT/APP/app_irtracking_eight.c"
     "$PROJECT_ROOT/APP/app_imu.c"
     "$PROJECT_ROOT/APP/app_status_display.c"
+    "$PROJECT_ROOT/APP/app_track_mission.c"
     "$PROJECT_ROOT/APP/app_ultrasonic.c"
     "$PROJECT_ROOT/APP/app_voice.c"
 )

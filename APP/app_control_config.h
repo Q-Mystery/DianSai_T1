@@ -23,10 +23,31 @@
  */
 #define IMU_I2C_ADDRESS                    (0x68U)
 #define IMU_INIT_RETRY_COUNT               (2U)
-#define IMU_CALIBRATION_SAMPLES            (32U)
+#define IMU_CALIBRATION_SAMPLES            (128U)
 #define IMU_GYRO_Z_CURVE_THRESHOLD_RAW     (300)
 #define IMU_GYRO_Z_DPS_X10_DIVISOR         (16)
 #define IMU_UPDATE_MIN_INTERVAL_MS         (20U)
+
+/*
+ * Two-lap oval mission based on MPU6050 yaw rate only.
+ * The bottom line follower still keeps the car on the black line; these
+ * parameters only identify the four sustained half-circle turns in
+ * A-B-C-D-A-B-C-D-A. Encoder distance is deliberately not used for this task.
+ */
+#define TRACK_MISSION_TARGET_ARCS          (4U)
+#define TRACK_MISSION_GYRO_LPF_NUM         (1)
+#define TRACK_MISSION_GYRO_LPF_DEN         (4)
+#define TRACK_MISSION_GYRO_DEADBAND_X10    (10)   /* 1.0 deg/s */
+#define TRACK_MISSION_ENTER_RATE_X10       (20)   /* 2.0 deg/s */
+#define TRACK_MISSION_ENTER_WINDOW_MS      (800U)
+#define TRACK_MISSION_ENTER_NET_ANGLE_X10  (18)   /* 1.8 deg */
+#define TRACK_MISSION_ENTER_SIGN_NUM       (7U)
+#define TRACK_MISSION_ENTER_SIGN_DEN       (10U)
+#define TRACK_MISSION_ARC_DONE_ANGLE_X10   (1650) /* 165 deg */
+#define TRACK_MISSION_ARC_EXIT_RATE_X10    (15)   /* 1.5 deg/s */
+#define TRACK_MISSION_ARC_EXIT_CONFIRM_MS  (300U)
+#define TRACK_MISSION_ARC_MIN_DURATION_MS  (1000U)
+#define TRACK_MISSION_ARC_COOLDOWN_MS      (1200U)
 
 /*
  * Ultrasonic obstacle avoidance.

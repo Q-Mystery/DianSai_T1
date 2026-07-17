@@ -115,6 +115,7 @@ $sources = @(
     "APP\app_irtracking_eight.c",
     "APP\app_imu.c",
     "APP\app_status_display.c",
+    "APP\app_track_mission.c",
     "APP\app_ultrasonic.c",
     "APP\app_voice.c"
 )

@@ -15,6 +15,8 @@ static int8_t s_turn_latch_direction;
 static int8_t s_last_line_direction;
 static uint8_t s_turn_latch_hard;
 static uint8_t s_recent_turn_recovery;
+static uint8_t s_right_recovery_active;
+static uint8_t s_lost_reacquire_cycles;
 
 #define LINE_FAST_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
@@ -24,6 +26,9 @@ static uint8_t s_recent_turn_recovery;
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_LOST_RECOVERY_CYCLES \
     ((uint16_t)((LINE_LOST_RECOVERY_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+                APP_MAIN_LOOP_DELAY_MS))
+#define LINE_LOST_BRAKE_CYCLES \
+    ((uint16_t)((LINE_LOST_BRAKE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_FAST_AFTER_TURN_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_AFTER_TURN_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
@@ -103,6 +108,11 @@ static uint8_t APP_Line_Center_Window_Stable(int8_t error,
 
     return (uint8_t)(center_active && side_clear && centered &&
                      (active_count <= 2U));
+}
+
+static uint8_t APP_Line_Right_Reacquire_Seen(void)
+{
+    return (uint8_t)(X4 || X5 || X6 || X7 || X8);
 }
 
 static int8_t APP_Line_Direction_From_Pair(uint8_t left_sensor,
@@ -246,28 +256,47 @@ void LineWalking(void)
         s_center_stable_cycles = 0U;
         s_center_straight = 0U;
         pid_output_IRR = 0;
+        s_right_recovery_active = 1U;
+        s_lost_reacquire_cycles = 0U;
+        s_turn_latch_direction = 1;
+        s_turn_latch_hard = 1U;
+        APP_Line_Remember_Direction(1);
         if (s_lost_line_cycles < LINE_LOST_RECOVERY_CYCLES) {
             s_lost_line_cycles++;
-            turn_direction = s_last_line_direction;
-            if (turn_direction == 0) {
-                turn_direction = s_turn_latch_direction;
-            }
-            if (turn_direction == 0) {
-                turn_direction = APP_Line_Sign(s_last_valid_error);
-            }
-            if (turn_direction != 0) {
-                s_recent_turn_recovery = 1U;
-                APP_Line_Set_Differential(turn_direction,
-                                          LINE_LOST_RECOVERY_INNER_SPEED_MM_S,
-                                          LINE_LOST_RECOVERY_OUTER_SPEED_MM_S,
-                                          0);
+            s_recent_turn_recovery = 1U;
+            if (s_lost_line_cycles <= LINE_LOST_BRAKE_CYCLES) {
+                Motion_Stop(STOP_BRAKE);
             } else {
-                Motion_Set_Speed(0, 0);
+                APP_Line_Set_Differential(1,
+                                          LINE_LOST_RIGHT_SEARCH_INNER_SPEED_MM_S,
+                                          LINE_LOST_RIGHT_SEARCH_OUTER_SPEED_MM_S,
+                                          0);
             }
         } else {
-            Motion_Set_Speed(0, 0);
+            Motion_Stop(STOP_BRAKE);
         }
         return;
+    }
+
+    if (s_right_recovery_active != 0U) {
+        if (APP_Line_Right_Reacquire_Seen() != 0U) {
+            if (s_lost_reacquire_cycles < LINE_LOST_REACQUIRE_STABLE_CYCLES) {
+                s_lost_reacquire_cycles++;
+            }
+        } else {
+            s_lost_reacquire_cycles = 0U;
+        }
+
+        if (s_lost_reacquire_cycles < LINE_LOST_REACQUIRE_STABLE_CYCLES) {
+            APP_Line_Set_Differential(1,
+                                      LINE_LOST_RIGHT_SEARCH_INNER_SPEED_MM_S,
+                                      LINE_LOST_RIGHT_SEARCH_OUTER_SPEED_MM_S,
+                                      0);
+            return;
+        }
+
+        s_right_recovery_active = 0U;
+        s_lost_reacquire_cycles = 0U;
     }
 
     s_lost_line_cycles = 0U;

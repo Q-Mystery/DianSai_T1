@@ -8,12 +8,17 @@ int pid_output_IRR;
 static int16_t s_last_valid_error;
 static int8_t s_previous_error;
 static uint8_t s_center_straight;
+static uint16_t s_center_stable_cycles;
 static uint16_t s_lost_line_cycles;
 
-static int16_t Limit_Speed(int16_t speed)
+#define LINE_FAST_STABLE_CYCLES \
+    ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+                APP_MAIN_LOOP_DELAY_MS))
+
+static int16_t Limit_Correction_Speed(int16_t speed)
 {
-    if (speed < 0) {
-        return 0;
+    if (speed < LINE_MIN_INNER_SPEED_MM_S) {
+        return LINE_MIN_INNER_SPEED_MM_S;
     }
     if (speed > LINE_MAX_WHEEL_SPEED_MM_S) {
         return LINE_MAX_WHEEL_SPEED_MM_S;
@@ -32,6 +37,27 @@ static int8_t APP_Line_Error_From_Sensors(void)
                            X6 * LINE_SCORE_X6 + X5 * LINE_SCORE_X5);
 
     return (int8_t)(right_score - left_score);
+}
+
+static uint8_t APP_Line_Center_Window_Stable(int8_t error)
+{
+    uint8_t center_active = (uint8_t)(X3 || X4 || X5 || X6);
+    uint8_t outer_clear = (uint8_t)((X1 == 0U) && (X2 == 0U) &&
+                                   (X7 == 0U) && (X8 == 0U));
+    uint8_t centered = (uint8_t)((error >= -LINE_CENTER_DEADBAND) &&
+                                (error <= LINE_CENTER_DEADBAND));
+
+    return (uint8_t)(center_active && outer_clear && centered);
+}
+
+static int16_t APP_Line_Base_Speed_From_Error(int8_t error)
+{
+    uint8_t abs_error = (uint8_t)myabs(error);
+
+    if (abs_error >= 4U) {
+        return LINE_HARD_CORNER_SPEED_MM_S;
+    }
+    return LINE_CORNER_SPEED_MM_S;
 }
 
 float APP_HD_PID_Calc(int8_t actual_value)
@@ -94,6 +120,8 @@ void LineWalking(void)
     uint8_t active_count = 0U;
     int16_t left_speed;
     int16_t right_speed;
+    int16_t base_speed;
+    int16_t turn_delta;
     int8_t error;
     uint8_t i;
 
@@ -119,6 +147,8 @@ void LineWalking(void)
 
     if (active_count == 0U) {
         s_previous_error = 0;
+        s_center_stable_cycles = 0U;
+        s_center_straight = 0U;
         pid_output_IRR = 0;
         if (s_lost_line_cycles < LINE_LOST_FORWARD_CYCLES) {
             s_lost_line_cycles++;
@@ -147,31 +177,36 @@ void LineWalking(void)
             PID_Clear_Motor(MAX_MOTOR);
             s_center_straight = 1U;
         }
+        if (APP_Line_Center_Window_Stable(error) != 0U) {
+            if (s_center_stable_cycles < LINE_FAST_STABLE_CYCLES) {
+                s_center_stable_cycles++;
+            }
+        } else {
+            s_center_stable_cycles = 0U;
+        }
         s_last_valid_error = error;
         s_previous_error = 0;
         pid_output_IRR = 0;
-        Motion_Set_Speed(LINE_BASE_SPEED_MM_S, LINE_BASE_SPEED_MM_S);
+        base_speed = (s_center_stable_cycles >= LINE_FAST_STABLE_CYCLES) ?
+                         LINE_FAST_SPEED_MM_S : LINE_BASE_SPEED_MM_S;
+        Motion_Set_Speed(base_speed, base_speed);
         return;
     }
 
     s_center_straight = 0U;
+    s_center_stable_cycles = 0U;
     s_last_valid_error = error;
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
+    turn_delta = (int16_t)pid_output_IRR;
+    base_speed = APP_Line_Base_Speed_From_Error(error);
 
-    if (error < 0) {
-        left_speed = LINE_TURN_INNER_SPEED_MM_S;
-        right_speed = (myabs(error) >= 5) ?
-                          LINE_HARD_TURN_OUTER_SPEED_MM_S :
-                          LINE_TURN_OUTER_SPEED_MM_S;
-    } else {
-        left_speed = (myabs(error) >= 5) ?
-                         LINE_HARD_TURN_OUTER_SPEED_MM_S :
-                         LINE_TURN_OUTER_SPEED_MM_S;
-        right_speed = LINE_TURN_INNER_SPEED_MM_S;
-    }
-
-    left_speed = Limit_Speed(left_speed);
-    right_speed = Limit_Speed(right_speed);
+    /*
+     * Negative error means the line is left, so the left wheel must slow down.
+     * The sign is therefore opposite to the formula used for a right-positive
+     * steering command.
+     */
+    left_speed = Limit_Correction_Speed((int16_t)(base_speed + turn_delta));
+    right_speed = Limit_Correction_Speed((int16_t)(base_speed - turn_delta));
     Motion_Set_Speed(left_speed, right_speed);
 }
 

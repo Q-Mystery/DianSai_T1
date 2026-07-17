@@ -111,11 +111,21 @@
  * Motor driver PWM.
  * MOTOR_PWM_MAX_DUTY must match the SysConfig PWM period. MOTOR_PWM_DEAD_ZONE
  * is added only after a non-zero PID output so the motor can overcome static
- * friction without making a zero command move the wheel.
+ * friction without making a zero command move the wheel. The available motor
+ * supply is 7.2 V, so the PWM limit below allows full effective duty while
+ * still keeping zero commands stopped.
  */
 #define MOTOR_PWM_MAX_DUTY                 (1000)
 #define MOTOR_PWM_COMPARE_INVERTED         (1U)
 #define MOTOR_PWM_DEAD_ZONE                (160)
+#define MOTOR_SUPPLY_MV                    (7200U)
+#define MOTOR_TARGET_MAX_AVERAGE_MV        (7200U)
+#define MOTOR_TARGET_EFFECTIVE_PWM_DUTY_RAW \
+    (((MOTOR_TARGET_MAX_AVERAGE_MV * MOTOR_PWM_MAX_DUTY) + \
+      (MOTOR_SUPPLY_MV / 2U)) / MOTOR_SUPPLY_MV)
+#define MOTOR_TARGET_EFFECTIVE_PWM_DUTY \
+    ((MOTOR_TARGET_EFFECTIVE_PWM_DUTY_RAW > MOTOR_PWM_MAX_DUTY) ? \
+        MOTOR_PWM_MAX_DUTY : MOTOR_TARGET_EFFECTIVE_PWM_DUTY_RAW)
 #define MOTOR_LEFT_PWM_CHANNEL_INDEX       GPIO_motor_PWM_C1_IDX
 #define MOTOR_RIGHT_PWM_CHANNEL_INDEX      GPIO_motor_PWM_C2_IDX
 
@@ -146,23 +156,26 @@
  * active brake is disabled by default because an early brake pulse can make the
  * car appear unable to track; enable it only after encoder scale is verified.
  */
-#define MOTOR_MAX_FORWARD_SPEED_MM_S       (36)
+#define MOTOR_MAX_FORWARD_SPEED_MM_S       (160)
 #define MOTOR_OVERSPEED_BRAKE_ENABLE       (0U)
 #define MOTOR_MAX_PULSES_PER_20MS          (45)
 #define MOTION_COMMAND_LIMIT_MM_S          (1000)
 #define MOTION_PERCENT_SPEED_SCALE         (10U)
 #define MOTION_SPIN_SPEED_MULTIPLIER       (5)
 #define MOTION_YAW_RATE_SCALE              (1000.0f)
-#define MOTOR_TARGET_RAMP_STEP_MM_S        (1)
-#define MOTOR_PID_PWM_LIMIT                (35.0f)
+#define MOTOR_TARGET_RAMP_STEP_MM_S        (6)
+#define MOTOR_PID_PWM_LIMIT \
+    ((MOTOR_TARGET_EFFECTIVE_PWM_DUTY > MOTOR_PWM_DEAD_ZONE) ? \
+        ((float)(MOTOR_TARGET_EFFECTIVE_PWM_DUTY - MOTOR_PWM_DEAD_ZONE)) : \
+        0.0f)
 
 /*
  * Wheel speed PID. The same gains are applied to left and right wheels.
  * Increase KP if speed response is too slow; increase KI only after the car can
  * already follow the line without large oscillation.
  */
-#define MOTOR_SPEED_PID_KP                 (0.20f)
-#define MOTOR_SPEED_PID_KI                 (0.000f)
+#define MOTOR_SPEED_PID_KP                 (0.35f)
+#define MOTOR_SPEED_PID_KI                 (0.008f)
 #define MOTOR_SPEED_PID_KD                 (0.00f)
 
 /* Optional yaw PID used by legacy IMU-assisted movement functions. */
@@ -172,17 +185,22 @@
 
 /*
  * Black-line tracking for an oval/track-field style course.
- * X4 or X5 alone means "good enough, go straight". If a side probe is active
- * at the same time, apply a small differential early and keep moving slowly.
+ * Keep both wheels moving while correcting. Only enter the fast straight mode
+ * after the central probe window is stable for a short time.
  */
-#define LINE_TURN_KP                       (1.20f)
-#define LINE_TURN_KD                       (0.00f)
-#define LINE_BASE_SPEED_MM_S               (12)
-#define LINE_CORRECTION_SPEED_MM_S         (15)
+#define LINE_TURN_KP                       (4.00f)
+#define LINE_TURN_KD                       (2.00f)
+#define LINE_BASE_SPEED_MM_S               (60)
+#define LINE_FAST_SPEED_MM_S               (120)
+#define LINE_CORNER_SPEED_MM_S             (50)
+#define LINE_HARD_CORNER_SPEED_MM_S        (35)
+#define LINE_CORRECTION_SPEED_MM_S         LINE_CORNER_SPEED_MM_S
 #define LINE_SEARCH_SPEED_MM_S             (5)
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
-#define LINE_MAX_TURN_DELTA_MM_S           (8)
+#define LINE_MAX_TURN_DELTA_MM_S           (45)
+#define LINE_FAST_STABLE_MS                (150U)
+#define LINE_MIN_INNER_SPEED_MM_S          (10)
 #define LINE_LOST_FORWARD_CYCLES           (8U)
 #define LINE_TURN_INNER_SPEED_MM_S         (0)
 #define LINE_TURN_OUTER_SPEED_MM_S         (15)

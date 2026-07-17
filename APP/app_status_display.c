@@ -1,6 +1,5 @@
 #include "app_status_display.h"
 #include "AllHeader.h"
-#include "app_imu.h"
 #include "app_track_mission.h"
 #include "app_ultrasonic.h"
 #include "app_voice.h"
@@ -96,22 +95,6 @@ static void AppDisplay_ClearRow(uint8_t row)
         (uint8_t *)"                     ", 8U, 1U);
 }
 
-static void AppDisplay_ShowSigned3(uint8_t x, uint8_t y, int16_t value)
-{
-    uint32_t abs_value;
-
-    if (value < 0) {
-        OLED_ShowChar(x, y, '-', 8U, 1U);
-        abs_value = AppDisplay_Abs32(value);
-    } else {
-        OLED_ShowChar(x, y, '+', 8U, 1U);
-        abs_value = (uint32_t)value;
-    }
-
-    OLED_ShowNum((uint8_t)(x + 6U), y,
-        AppDisplay_ClampDigits(abs_value, 3U), 3U, 8U, 1U);
-}
-
 void AppStatusDisplay_Update(void)
 {
     int *encoder_counts = (int *)Motion_Get_Data(1U);
@@ -123,7 +106,6 @@ void AppStatusDisplay_Update(void)
     int16_t avg_speed_mm_s;
     uint32_t avg_speed_tenths_cm_s;
     uint8_t next_x;
-    const AppIMU_Status_t *imu = AppIMU_GetStatus();
     const AppTrackMission_Status_t *mission = AppTrackMission_GetStatus();
     const AppUltrasonic_Status_t *ultrasonic = AppUltrasonic_GetStatus();
 
@@ -166,14 +148,14 @@ void AppStatusDisplay_Update(void)
     OLED_ShowNum(108U, 16U, AppVoice_GetLastError(), 1U, 8U, 1U);
 
     AppDisplay_ClearRow(3U);
-    if (imu->available) {
-        OLED_ShowString(0U, 24U,
-            (uint8_t *)(imu->is_curve ? "IMU:CUR Z:" : "IMU:STR Z:"),
-            8U, 1U);
-        AppDisplay_ShowSigned3(60U, 24U, imu->yaw_rate_dps_x10);
-    } else {
-        OLED_ShowString(0U, 24U, (uint8_t *)"IMU:MISS", 8U, 1U);
-    }
+    OLED_ShowString(0U, 24U, (uint8_t *)"ARC:", 8U, 1U);
+    OLED_ShowNum(24U, 24U, mission->arc_count, 1U, 8U, 1U);
+    OLED_ShowString(36U, 24U, (uint8_t *)"A:", 8U, 1U);
+    next_x = AppDisplay_ShowUnsigned(48U, 24U,
+        (AppDisplay_Abs32(mission->arc_angle_x10) + 5U) / 10U, 3U);
+    OLED_ShowString(next_x, 24U, (uint8_t *)" S:", 8U, 1U);
+    OLED_ShowNum((uint8_t)(next_x + 18U), 24U,
+        (uint32_t)mission->state, 1U, 8U, 1U);
 
     OLED_Refresh();
 }

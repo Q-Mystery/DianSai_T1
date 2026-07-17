@@ -163,11 +163,13 @@
 #define MOTION_PERCENT_SPEED_SCALE         (10U)
 #define MOTION_SPIN_SPEED_MULTIPLIER       (5)
 #define MOTION_YAW_RATE_SCALE              (1000.0f)
-#define MOTOR_TARGET_RAMP_STEP_MM_S        (6)
+#define MOTOR_TARGET_RAMP_STEP_MM_S        (10)
 #define MOTOR_PID_PWM_LIMIT \
     ((MOTOR_TARGET_EFFECTIVE_PWM_DUTY > MOTOR_PWM_DEAD_ZONE) ? \
         ((float)(MOTOR_TARGET_EFFECTIVE_PWM_DUTY - MOTOR_PWM_DEAD_ZONE)) : \
         0.0f)
+#define MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S (4.20f)
+#define MOTOR_PID_CORRECTION_LIMIT         (120.0f)
 
 /*
  * Wheel speed PID. The same gains are applied to left and right wheels.
@@ -188,23 +190,28 @@
  * Keep both wheels moving while correcting. Only enter the fast straight mode
  * after the central probe window is stable for a short time.
  */
-#define LINE_TURN_KP                       (4.00f)
-#define LINE_TURN_KD                       (2.00f)
-#define LINE_BASE_SPEED_MM_S               (60)
-#define LINE_FAST_SPEED_MM_S               (120)
-#define LINE_CORNER_SPEED_MM_S             (50)
-#define LINE_HARD_CORNER_SPEED_MM_S        (35)
+#define LINE_TURN_KP                       (6.00f)
+#define LINE_TURN_KD                       (10.00f)
+#define LINE_BASE_SPEED_MM_S               (80)
+#define LINE_FAST_SPEED_MM_S               (140)
+#define LINE_CORNER_SPEED_MM_S             (80)
+#define LINE_HARD_CORNER_SPEED_MM_S        (70)
 #define LINE_CORRECTION_SPEED_MM_S         LINE_CORNER_SPEED_MM_S
 #define LINE_SEARCH_SPEED_MM_S             (5)
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
-#define LINE_MAX_TURN_DELTA_MM_S           (45)
-#define LINE_FAST_STABLE_MS                (150U)
-#define LINE_MIN_INNER_SPEED_MM_S          (10)
+#define LINE_MAX_TURN_DELTA_MM_S           (60)
+#define LINE_FAST_STABLE_MS                (100U)
+#define LINE_SOFT_TURN_INNER_SPEED_MM_S    (70)
+#define LINE_SOFT_TURN_OUTER_SPEED_MM_S    (120)
+#define LINE_MEDIUM_TURN_INNER_SPEED_MM_S  (35)
+#define LINE_MEDIUM_TURN_OUTER_SPEED_MM_S  (120)
+#define LINE_HARD_TURN_INNER_SPEED_MM_S    (8)
+#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (110)
+#define LINE_PD_TRIM_DIVISOR               (4)
 #define LINE_LOST_FORWARD_CYCLES           (8U)
 #define LINE_TURN_INNER_SPEED_MM_S         (0)
-#define LINE_TURN_OUTER_SPEED_MM_S         (15)
-#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (20)
+#define LINE_TURN_OUTER_SPEED_MM_S         LINE_MEDIUM_TURN_OUTER_SPEED_MM_S
 
 /*
  * Sensor scores for state-machine tracking. Left score and right score are

@@ -15,10 +15,10 @@ static uint16_t s_lost_line_cycles;
     ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 
-static int16_t Limit_Correction_Speed(int16_t speed)
+static int16_t Limit_Wheel_Speed(int16_t speed)
 {
-    if (speed < LINE_MIN_INNER_SPEED_MM_S) {
-        return LINE_MIN_INNER_SPEED_MM_S;
+    if (speed < 0) {
+        return 0;
     }
     if (speed > LINE_MAX_WHEEL_SPEED_MM_S) {
         return LINE_MAX_WHEEL_SPEED_MM_S;
@@ -41,23 +41,60 @@ static int8_t APP_Line_Error_From_Sensors(void)
 
 static uint8_t APP_Line_Center_Window_Stable(int8_t error)
 {
-    uint8_t center_active = (uint8_t)(X3 || X4 || X5 || X6);
-    uint8_t outer_clear = (uint8_t)((X1 == 0U) && (X2 == 0U) &&
-                                   (X7 == 0U) && (X8 == 0U));
+    uint8_t center_active = (uint8_t)(X4 || X5);
+    uint8_t outer_clear = (uint8_t)((X1 == 0U) && (X8 == 0U));
     uint8_t centered = (uint8_t)((error >= -LINE_CENTER_DEADBAND) &&
                                 (error <= LINE_CENTER_DEADBAND));
 
     return (uint8_t)(center_active && outer_clear && centered);
 }
 
-static int16_t APP_Line_Base_Speed_From_Error(int8_t error)
+static int8_t APP_Line_Direction_From_Pair(uint8_t left_sensor,
+                                           uint8_t right_sensor,
+                                           int8_t error)
 {
-    uint8_t abs_error = (uint8_t)myabs(error);
-
-    if (abs_error >= 4U) {
-        return LINE_HARD_CORNER_SPEED_MM_S;
+    if ((left_sensor != 0U) && (right_sensor == 0U)) {
+        return -1;
     }
-    return LINE_CORNER_SPEED_MM_S;
+    if ((right_sensor != 0U) && (left_sensor == 0U)) {
+        return 1;
+    }
+    if (error < 0) {
+        return -1;
+    }
+    if (error > 0) {
+        return 1;
+    }
+    if (s_last_valid_error < 0) {
+        return -1;
+    }
+    if (s_last_valid_error > 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static void APP_Line_Set_Differential(int8_t direction,
+                                      int16_t inner_speed,
+                                      int16_t outer_speed,
+                                      int16_t trim)
+{
+    int16_t left_speed;
+    int16_t right_speed;
+
+    if (direction < 0) {
+        left_speed = (int16_t)(inner_speed - trim);
+        right_speed = (int16_t)(outer_speed + trim);
+    } else if (direction > 0) {
+        left_speed = (int16_t)(outer_speed + trim);
+        right_speed = (int16_t)(inner_speed - trim);
+    } else {
+        left_speed = LINE_BASE_SPEED_MM_S;
+        right_speed = LINE_BASE_SPEED_MM_S;
+    }
+
+    Motion_Set_Speed(Limit_Wheel_Speed(left_speed),
+                     Limit_Wheel_Speed(right_speed));
 }
 
 float APP_HD_PID_Calc(int8_t actual_value)
@@ -122,6 +159,8 @@ void LineWalking(void)
     int16_t right_speed;
     int16_t base_speed;
     int16_t turn_delta;
+    int16_t trim;
+    int8_t turn_direction;
     int8_t error;
     uint8_t i;
 
@@ -197,16 +236,43 @@ void LineWalking(void)
     s_center_stable_cycles = 0U;
     s_last_valid_error = error;
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
-    turn_delta = (int16_t)pid_output_IRR;
-    base_speed = APP_Line_Base_Speed_From_Error(error);
+    trim = (int16_t)(myabs(pid_output_IRR) / LINE_PD_TRIM_DIVISOR);
+
+    if ((X1 != 0U) || (X8 != 0U)) {
+        turn_direction = APP_Line_Direction_From_Pair(X1, X8, error);
+        APP_Line_Set_Differential(turn_direction,
+                                  LINE_HARD_TURN_INNER_SPEED_MM_S,
+                                  LINE_HARD_TURN_OUTER_SPEED_MM_S,
+                                  trim);
+        return;
+    }
+
+    if ((X2 != 0U) || (X7 != 0U)) {
+        turn_direction = APP_Line_Direction_From_Pair(X2, X7, error);
+        APP_Line_Set_Differential(turn_direction,
+                                  LINE_MEDIUM_TURN_INNER_SPEED_MM_S,
+                                  LINE_MEDIUM_TURN_OUTER_SPEED_MM_S,
+                                  trim);
+        return;
+    }
+
+    if ((X3 != 0U) || (X6 != 0U)) {
+        turn_direction = APP_Line_Direction_From_Pair(X3, X6, error);
+        APP_Line_Set_Differential(turn_direction,
+                                  LINE_SOFT_TURN_INNER_SPEED_MM_S,
+                                  LINE_SOFT_TURN_OUTER_SPEED_MM_S,
+                                  trim);
+        return;
+    }
 
     /*
      * Negative error means the line is left, so the left wheel must slow down.
      * The sign is therefore opposite to the formula used for a right-positive
      * steering command.
      */
-    left_speed = Limit_Correction_Speed((int16_t)(base_speed + turn_delta));
-    right_speed = Limit_Correction_Speed((int16_t)(base_speed - turn_delta));
+    turn_delta = (int16_t)pid_output_IRR;
+    left_speed = Limit_Wheel_Speed((int16_t)(LINE_CORNER_SPEED_MM_S + turn_delta));
+    right_speed = Limit_Wheel_Speed((int16_t)(LINE_CORNER_SPEED_MM_S - turn_delta));
     Motion_Set_Speed(left_speed, right_speed);
 }
 

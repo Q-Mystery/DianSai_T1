@@ -12,6 +12,40 @@ static int speed_R1_setup = 0;
 static int g_offset_yaw = 0;
 static uint16_t g_speed_setup = 0;
 
+static float Motion_Clamp_Pwm(float pwm)
+{
+    if (pwm > MOTOR_PID_PWM_LIMIT) {
+        return MOTOR_PID_PWM_LIMIT;
+    }
+    if (pwm < 0.0f) {
+        return 0.0f;
+    }
+    return pwm;
+}
+
+static float Motion_Clamp_Pwm_Correction(float pwm)
+{
+    if (pwm > MOTOR_PID_CORRECTION_LIMIT) {
+        return MOTOR_PID_CORRECTION_LIMIT;
+    }
+    if (pwm < -MOTOR_PID_CORRECTION_LIMIT) {
+        return -MOTOR_PID_CORRECTION_LIMIT;
+    }
+    return pwm;
+}
+
+static float Motion_Speed_Feedforward_Pwm(int16_t target_mm_s)
+{
+    float pwm;
+
+    if (target_mm_s <= 0) {
+        return 0.0f;
+    }
+
+    pwm = target_mm_s * MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S;
+    return Motion_Clamp_Pwm(pwm);
+}
+
 static int16_t Motion_Limit_Forward_Speed(int16_t speed)
 {
     if (speed <= 0) {
@@ -388,6 +422,12 @@ void Motion_Handle(void)
         /* Zero/overspeed targets never become a reverse command. */
         for (uint8_t i = 0; i < MAX_MOTOR; i++)
         {
+            float correction = Motion_Clamp_Pwm_Correction(motor_data.speed_pwm[i]);
+            pid_motor[i].pwm_output = correction;
+            motor_data.speed_pwm[i] = Motion_Clamp_Pwm(
+                Motion_Speed_Feedforward_Pwm(motor_data.speed_set[i]) +
+                correction);
+
             overspeed[i] =
                 (MOTOR_OVERSPEED_BRAKE_ENABLE != 0U) &&
                 (Motion_Abs_Encoder_Delta(g_Encoder_All_Offset[i]) >

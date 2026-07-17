@@ -19,28 +19,21 @@ static uint8_t s_right_recovery_active;
 static uint8_t s_lost_reacquire_cycles;
 static int16_t s_fast_line_speed;
 static uint16_t s_fast_ramp_cycles;
-static int16_t s_turn_cmd_left;
-static int16_t s_turn_cmd_right;
-static uint16_t s_turn_ramp_cycles;
-static uint8_t s_turn_cmd_valid;
 
 #define LINE_FAST_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
-#define LINE_TURN_LATCH_CYCLES \
-    ((uint16_t)((LINE_TURN_LATCH_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
-                APP_MAIN_LOOP_DELAY_MS))
 #define LINE_FAST_RAMP_STEP_CYCLES \
     ((uint16_t)((LINE_FAST_RAMP_STEP_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
-#define LINE_TURN_RAMP_STEP_CYCLES \
-    ((uint16_t)((LINE_TURN_RAMP_STEP_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+#define LINE_TURN_LATCH_CYCLES \
+    ((uint16_t)((LINE_TURN_LATCH_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_LOST_RECOVERY_CYCLES \
     ((uint16_t)((LINE_LOST_RECOVERY_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
-#define LINE_LOST_FREE_STOP_CYCLES \
-    ((uint16_t)((LINE_LOST_FREE_STOP_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
+#define LINE_LOST_BRAKE_CYCLES \
+    ((uint16_t)((LINE_LOST_BRAKE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
                 APP_MAIN_LOOP_DELAY_MS))
 #define LINE_FAST_AFTER_TURN_STABLE_CYCLES \
     ((uint16_t)((LINE_FAST_AFTER_TURN_STABLE_MS + APP_MAIN_LOOP_DELAY_MS - 1U) / \
@@ -127,59 +120,6 @@ static uint8_t APP_Line_Right_Reacquire_Seen(void)
     return (uint8_t)(X4 || X5 || X6 || X7 || X8);
 }
 
-static int16_t APP_Line_Step_Toward(int16_t current, int16_t target,
-                                    int16_t step)
-{
-    if (current < target) {
-        current = (int16_t)(current + step);
-        return (current > target) ? target : current;
-    }
-    if (current > target) {
-        current = (int16_t)(current - step);
-        return (current < target) ? target : current;
-    }
-    return current;
-}
-
-static void APP_Line_Reset_Turn_Command(int16_t left_speed,
-                                        int16_t right_speed)
-{
-    s_turn_cmd_left = Limit_Wheel_Speed(left_speed);
-    s_turn_cmd_right = Limit_Wheel_Speed(right_speed);
-    s_turn_ramp_cycles = 0U;
-    s_turn_cmd_valid = 1U;
-}
-
-static void APP_Line_Set_Speed_Direct(int16_t left_speed, int16_t right_speed)
-{
-    left_speed = Limit_Wheel_Speed(left_speed);
-    right_speed = Limit_Wheel_Speed(right_speed);
-    APP_Line_Reset_Turn_Command(left_speed, right_speed);
-    Motion_Set_Speed(left_speed, right_speed);
-}
-
-static void APP_Line_Set_Speed_Ramped(int16_t left_speed, int16_t right_speed)
-{
-    left_speed = Limit_Wheel_Speed(left_speed);
-    right_speed = Limit_Wheel_Speed(right_speed);
-
-    if (s_turn_cmd_valid == 0U) {
-        APP_Line_Reset_Turn_Command(0, 0);
-    }
-
-    if (s_turn_ramp_cycles < LINE_TURN_RAMP_STEP_CYCLES) {
-        s_turn_ramp_cycles++;
-    } else {
-        s_turn_ramp_cycles = 0U;
-        s_turn_cmd_left = APP_Line_Step_Toward(s_turn_cmd_left, left_speed,
-                                               LINE_TURN_RAMP_STEP_MM_S);
-        s_turn_cmd_right = APP_Line_Step_Toward(s_turn_cmd_right, right_speed,
-                                                LINE_TURN_RAMP_STEP_MM_S);
-    }
-
-    Motion_Set_Speed(s_turn_cmd_left, s_turn_cmd_right);
-}
-
 static void APP_Line_Reset_Fast_Ramp(void)
 {
     s_fast_line_speed = LINE_BASE_SPEED_MM_S;
@@ -244,17 +184,18 @@ static void APP_Line_Set_Differential(int8_t direction,
     int16_t right_speed;
 
     if (direction < 0) {
-        left_speed = inner_speed;
+        left_speed = (int16_t)(inner_speed - trim);
         right_speed = (int16_t)(outer_speed + trim);
     } else if (direction > 0) {
         left_speed = (int16_t)(outer_speed + trim);
-        right_speed = inner_speed;
+        right_speed = (int16_t)(inner_speed - trim);
     } else {
         left_speed = LINE_BASE_SPEED_MM_S;
         right_speed = LINE_BASE_SPEED_MM_S;
     }
 
-    APP_Line_Set_Speed_Ramped(left_speed, right_speed);
+    Motion_Set_Speed(Limit_Wheel_Speed(left_speed),
+                     Limit_Wheel_Speed(right_speed));
 }
 
 float APP_HD_PID_Calc(int8_t actual_value)
@@ -358,9 +299,8 @@ void LineWalking(void)
         if (s_lost_line_cycles < LINE_LOST_RECOVERY_CYCLES) {
             s_lost_line_cycles++;
             s_recent_turn_recovery = 1U;
-            if (s_lost_line_cycles <= LINE_LOST_FREE_STOP_CYCLES) {
-                Motion_Stop(STOP_FREE);
-                APP_Line_Reset_Turn_Command(0, 0);
+            if (s_lost_line_cycles <= LINE_LOST_BRAKE_CYCLES) {
+                Motion_Stop(STOP_BRAKE);
             } else {
                 APP_Line_Set_Differential(1,
                                           LINE_LOST_RIGHT_SEARCH_INNER_SPEED_MM_S,
@@ -368,8 +308,7 @@ void LineWalking(void)
                                           0);
             }
         } else {
-            Motion_Stop(STOP_FREE);
-            APP_Line_Reset_Turn_Command(0, 0);
+            Motion_Stop(STOP_BRAKE);
         }
         return;
     }
@@ -398,9 +337,6 @@ void LineWalking(void)
     s_lost_line_cycles = 0U;
     pid_output_IRR = (int)APP_HD_PID_Calc(error);
     trim = (int16_t)(myabs(pid_output_IRR) / LINE_PD_TRIM_DIVISOR);
-    if (trim > LINE_TURN_TRIM_LIMIT_MM_S) {
-        trim = LINE_TURN_TRIM_LIMIT_MM_S;
-    }
 
     if ((X1 != 0U) || (X8 != 0U)) {
         turn_direction = APP_Line_Direction_From_Pair(X1, X8, error);
@@ -454,7 +390,7 @@ void LineWalking(void)
             APP_Line_Reset_Fast_Ramp();
             base_speed = LINE_BASE_SPEED_MM_S;
         }
-        APP_Line_Set_Speed_Direct(base_speed, base_speed);
+        Motion_Set_Speed(base_speed, base_speed);
         return;
     }
 
@@ -502,7 +438,7 @@ void LineWalking(void)
     turn_delta = (int16_t)pid_output_IRR;
     left_speed = Limit_Wheel_Speed((int16_t)(LINE_CORNER_SPEED_MM_S + turn_delta));
     right_speed = Limit_Wheel_Speed((int16_t)(LINE_CORNER_SPEED_MM_S - turn_delta));
-    APP_Line_Set_Speed_Ramped(left_speed, right_speed);
+    Motion_Set_Speed(left_speed, right_speed);
 }
 
 void LineWalking_PWM(void)

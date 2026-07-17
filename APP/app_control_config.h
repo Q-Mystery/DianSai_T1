@@ -113,13 +113,13 @@
  * is added only after a non-zero PID output so the motor can overcome static
  * friction without making a zero command move the wheel. The motor supply is
  * 7.2 V; the target average drive voltage below caps normal forward drive at
- * 4.5 V while still keeping zero commands stopped.
+ * 5.0 V while still keeping zero commands stopped.
  */
 #define MOTOR_PWM_MAX_DUTY                 (1000)
 #define MOTOR_PWM_COMPARE_INVERTED         (1U)
 #define MOTOR_PWM_DEAD_ZONE                (160)
 #define MOTOR_SUPPLY_MV                    (7200U)
-#define MOTOR_TARGET_MAX_AVERAGE_MV        (4500U)
+#define MOTOR_TARGET_MAX_AVERAGE_MV        (5000U)
 #define MOTOR_TARGET_EFFECTIVE_PWM_DUTY_RAW \
     (((MOTOR_TARGET_MAX_AVERAGE_MV * MOTOR_PWM_MAX_DUTY) + \
       (MOTOR_SUPPLY_MV / 2U)) / MOTOR_SUPPLY_MV)
@@ -192,8 +192,8 @@
  */
 #define LINE_TURN_KP                       (6.00f)
 #define LINE_TURN_KD                       (10.00f)
-#define LINE_BASE_SPEED_MM_S               (70)
-#define LINE_FAST_SPEED_MM_S               (100)
+#define LINE_BASE_SPEED_MM_S               (75)
+#define LINE_FAST_SPEED_MM_S               (110)
 #define LINE_CORNER_SPEED_MM_S             (80)
 #define LINE_HARD_CORNER_SPEED_MM_S        (70)
 #define LINE_CORRECTION_SPEED_MM_S         LINE_CORNER_SPEED_MM_S
@@ -201,30 +201,27 @@
 #define LINE_MAX_WHEEL_SPEED_MM_S          MOTOR_MAX_FORWARD_SPEED_MM_S
 #define LINE_CENTER_DEADBAND               (1)
 #define LINE_MAX_TURN_DELTA_MM_S           (60)
-#define LINE_FAST_STABLE_MS                (100U)
+#define LINE_FAST_STABLE_MS                (80U)
 #define LINE_FAST_RAMP_STEP_MM_S           (10)
-#define LINE_FAST_RAMP_STEP_MS             (150U)
-#define LINE_TURN_RAMP_STEP_MM_S           (10)
-#define LINE_TURN_RAMP_STEP_MS             (20U)
+#define LINE_FAST_RAMP_STEP_MS             (120U)
 #define LINE_TURN_LATCH_MS                 (80U)
-#define LINE_LOST_FREE_STOP_MS             (60U)
+#define LINE_LOST_BRAKE_MS                 (60U)
 #define LINE_LOST_RECOVERY_MS              (560U)
-#define LINE_FAST_AFTER_TURN_STABLE_MS     (200U)
-#define LINE_SOFT_TURN_INNER_SPEED_MM_S    (25)
-#define LINE_SOFT_TURN_OUTER_SPEED_MM_S    (70)
-#define LINE_MEDIUM_TURN_INNER_SPEED_MM_S  (12)
-#define LINE_MEDIUM_TURN_OUTER_SPEED_MM_S  (60)
-#define LINE_HARD_TURN_INNER_SPEED_MM_S    (8)
-#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (50)
-#define LINE_LOST_RECOVERY_INNER_SPEED_MM_S (8)
-#define LINE_LOST_RECOVERY_OUTER_SPEED_MM_S (38)
-#define LINE_LOST_RIGHT_SEARCH_INNER_SPEED_MM_S (8)
-#define LINE_LOST_RIGHT_SEARCH_OUTER_SPEED_MM_S (38)
+#define LINE_FAST_AFTER_TURN_STABLE_MS     (180U)
+#define LINE_SOFT_TURN_INNER_SPEED_MM_S    (40)
+#define LINE_SOFT_TURN_OUTER_SPEED_MM_S    (100)
+#define LINE_MEDIUM_TURN_INNER_SPEED_MM_S  (0)
+#define LINE_MEDIUM_TURN_OUTER_SPEED_MM_S  (85)
+#define LINE_HARD_TURN_INNER_SPEED_MM_S    (0)
+#define LINE_HARD_TURN_OUTER_SPEED_MM_S    (70)
+#define LINE_LOST_RECOVERY_INNER_SPEED_MM_S (0)
+#define LINE_LOST_RECOVERY_OUTER_SPEED_MM_S (45)
+#define LINE_LOST_RIGHT_SEARCH_INNER_SPEED_MM_S (0)
+#define LINE_LOST_RIGHT_SEARCH_OUTER_SPEED_MM_S (40)
 #define LINE_LOST_REACQUIRE_STABLE_CYCLES  (3U)
 #define LINE_PD_TRIM_DIVISOR               (4)
-#define LINE_TURN_TRIM_LIMIT_MM_S          (8)
 #define LINE_LOST_FORWARD_CYCLES           (8U)
-#define LINE_TURN_INNER_SPEED_MM_S         LINE_MEDIUM_TURN_INNER_SPEED_MM_S
+#define LINE_TURN_INNER_SPEED_MM_S         (0)
 #define LINE_TURN_OUTER_SPEED_MM_S         LINE_MEDIUM_TURN_OUTER_SPEED_MM_S
 
 /*

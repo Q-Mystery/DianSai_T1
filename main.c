@@ -39,7 +39,7 @@ int main(void)
             Motion_Stop(STOP_BRAKE);
             (void)AppVoice_TriggerObstacle();
         } else {
-            AppTrackMission_Update();
+            LineWalking();
         }
         if (obstacle_now != obstacle_last) {
             display_divider = APP_OLED_DISPLAY_DIVIDER;

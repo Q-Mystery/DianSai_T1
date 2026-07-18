@@ -39,6 +39,7 @@ extern uint8_t g_start_ctrl ;
 
 void *Motion_Get_Data(uint8_t index);
 void Motion_Get_Motor_Speed(float *speed);
+void Motion_Get_Motor_Pwm(float *pwm);
 void Motion_Set_Yaw_Adjust(uint8_t adjust);
 uint8_t Motion_Get_Yaw_Adjust(void);
 void Motion_Stop(uint8_t brake);

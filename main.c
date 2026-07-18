@@ -1,6 +1,8 @@
 #include "AllHeader.h"
 #include "app_bcd_display.h"
 #include "app_control_config.h"
+#include "app_line_stop_diag.h"
+#include "app_status_display.h"
 #include "app_voice.h"
 
 static bool g_line_stop_locked = false;
@@ -9,6 +11,8 @@ static bool g_alarm_flash_on = false;
 static uint32_t g_last_alarm_flash_ms = 0U;
 static bool g_straight_encoder_ready = false;
 static int32_t g_straight_encoder_start[2] = {0, 0};
+static LineStop_Diagnostics_t g_line_stop_diagnostics = {0};
+static uint32_t g_last_diagnostic_display_ms = 0U;
 
 static int32_t LineStop_Abs32(int32_t value)
 {
@@ -42,12 +46,24 @@ static void LineStop_ResetStraightEncoder(void)
     g_straight_encoder_ready = true;
 }
 
+void LineStop_GetDiagnostics(LineStop_Diagnostics_t *diagnostics)
+{
+    if (diagnostics == NULL) {
+        return;
+    }
+
+    *diagnostics = g_line_stop_diagnostics;
+}
+
 static int16_t LineStop_UpdateEncoderCorrection(void)
 {
     int encoder_counts[2] = {0, 0};
     int32_t left_delta;
     int32_t right_delta;
     int32_t error_counts;
+    float left_distance_mm;
+    float right_distance_mm;
+    float error_mm;
     float correction;
 
     if (LINE_STOP_ENCODER_STRAIGHT_ENABLE == 0U) {
@@ -66,13 +82,37 @@ static int16_t LineStop_UpdateEncoderCorrection(void)
                                  g_straight_encoder_start[1]);
     error_counts = right_delta - left_delta;
 
-    if (LineStop_Abs32(error_counts) <=
-        (int32_t)LINE_STOP_ENCODER_DEADBAND_COUNTS) {
+    left_distance_mm = (float)left_delta * LEFT_DISTANCE_PER_COUNT_MM;
+    right_distance_mm = (float)right_delta * RIGHT_DISTANCE_PER_COUNT_MM;
+    error_mm = right_distance_mm - left_distance_mm;
+
+    g_line_stop_diagnostics.left_counts = left_delta;
+    g_line_stop_diagnostics.right_counts = right_delta;
+    g_line_stop_diagnostics.error_counts = error_counts;
+
+    if ((error_mm >= -LINE_STOP_ENCODER_DEADBAND_MM) &&
+        (error_mm <= LINE_STOP_ENCODER_DEADBAND_MM)) {
+        g_line_stop_diagnostics.correction_mm_s = 0;
         return 0;
     }
 
-    correction = (float)error_counts * LINE_STOP_ENCODER_KP_MM_S_PER_COUNT;
-    return LineStop_ClampSpeedCorrection(correction);
+    correction = error_mm * LINE_STOP_ENCODER_KP_MM_S_PER_MM;
+    g_line_stop_diagnostics.correction_mm_s =
+        LineStop_ClampSpeedCorrection(correction);
+    return g_line_stop_diagnostics.correction_mm_s;
+}
+
+static void LineStop_UpdateDiagnosticDisplay(void)
+{
+#if LINE_STOP_DIAGNOSTIC_DISPLAY_ENABLE
+    uint32_t now_ms = Timer_Get_Runtime_Ms();
+
+    if ((uint32_t)(now_ms - g_last_diagnostic_display_ms) >=
+        LINE_STOP_DIAGNOSTIC_DISPLAY_MS) {
+        g_last_diagnostic_display_ms = now_ms;
+        AppStatusDisplay_Update();
+    }
+#endif
 }
 
 static void LineStop_SetAlarmSignal(bool on)
@@ -168,6 +208,8 @@ static void LineStop_UpdateDrive(void)
     encoder_correction = LineStop_UpdateEncoderCorrection();
     left_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S + encoder_correction);
     right_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S - encoder_correction);
+    g_line_stop_diagnostics.left_target_mm_s = left_speed;
+    g_line_stop_diagnostics.right_target_mm_s = right_speed;
     Motion_Set_Speed(left_speed, right_speed);
 }
 
@@ -201,6 +243,7 @@ int main(void)
             LineStop_UpdateAlarm();
         } else {
             LineStop_UpdateDrive();
+            LineStop_UpdateDiagnosticDisplay();
         }
         delay_ms(APP_MAIN_LOOP_DELAY_MS);
     }

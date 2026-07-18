@@ -46,15 +46,20 @@ static float Motion_Clamp_Sync_Pwm(float pwm)
     return pwm;
 }
 
-static float Motion_Speed_Feedforward_Pwm(int16_t target_mm_s)
+static float Motion_Speed_Feedforward_Pwm(uint8_t motor_id,
+    int16_t target_mm_s)
 {
     float pwm;
+    float feedforward;
 
     if (target_mm_s <= 0) {
         return 0.0f;
     }
 
-    pwm = target_mm_s * MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S;
+    feedforward = (motor_id == 0U) ?
+        LEFT_MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S :
+        RIGHT_MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S;
+    pwm = target_mm_s * feedforward;
     return Motion_Clamp_Pwm(pwm);
 }
 
@@ -126,6 +131,14 @@ void Motion_Get_Motor_Speed(float *speed)
     for (int i = 0; i < MAX_MOTOR; i++)
     {
         speed[i] = motor_data.speed_mm_s[i];
+    }
+}
+
+void Motion_Get_Motor_Pwm(float *pwm)
+{
+    for (int i = 0; i < MAX_MOTOR; i++)
+    {
+        pwm[i] = motor_data.speed_pwm[i];
     }
 }
 
@@ -493,7 +506,7 @@ void Motion_Handle(void)
 
             pid_motor[i].pwm_output = correction;
             motor_data.speed_pwm[i] = Motion_Clamp_Pwm(
-                Motion_Speed_Feedforward_Pwm(motor_data.speed_set[i]) +
+                Motion_Speed_Feedforward_Pwm(i, motor_data.speed_set[i]) +
                 correction + sync_correction);
 
             overspeed[i] =

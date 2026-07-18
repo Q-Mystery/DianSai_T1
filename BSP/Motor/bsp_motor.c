@@ -9,7 +9,7 @@ static void write_gpio(GPIO_Regs *port, uint32_t pin, uint8_t value)
     }
 }
 
-static uint16_t add_dead_zone(uint16_t pwm)
+static uint16_t add_dead_zone(uint16_t pwm, uint16_t dead_zone)
 {
     uint32_t adjusted;
 
@@ -17,7 +17,7 @@ static uint16_t add_dead_zone(uint16_t pwm)
         return 0U;
     }
 
-    adjusted = (uint32_t)pwm + MOTOR_PWM_DEAD_ZONE;
+    adjusted = (uint32_t)pwm + dead_zone;
     return (adjusted > MOTOR_PWM_MAX_DUTY) ?
                MOTOR_PWM_MAX_DUTY : (uint16_t)adjusted;
 }
@@ -100,7 +100,7 @@ void L1_control(uint16_t motor_speed, uint8_t dir)
     }
 
     set_left_direction(0U);
-    set_left_pwm(add_dead_zone(pwm));
+    set_left_pwm(add_dead_zone(pwm, LEFT_MOTOR_PWM_DEAD_ZONE));
 }
 
 void R1_control(uint16_t motor_speed, uint8_t dir)
@@ -119,7 +119,7 @@ void R1_control(uint16_t motor_speed, uint8_t dir)
     }
 
     set_right_direction(0U);
-    set_right_pwm(add_dead_zone(pwm));
+    set_right_pwm(add_dead_zone(pwm, RIGHT_MOTOR_PWM_DEAD_ZONE));
 }
 
 void PWM_Control_Car(int16_t left_motor_speed, int16_t right_motor_speed)

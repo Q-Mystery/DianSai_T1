@@ -1,5 +1,6 @@
 #include "app_status_display.h"
 #include "AllHeader.h"
+#include "app_line_stop_diag.h"
 #include "app_track_mission.h"
 #include "app_ultrasonic.h"
 #include "app_voice.h"
@@ -81,6 +82,19 @@ static uint8_t AppDisplay_ShowFixed1(uint8_t x, uint8_t y,
     return x;
 }
 
+static uint8_t AppDisplay_ShowSigned(uint8_t x, uint8_t y,
+    int32_t value, uint8_t digits)
+{
+    if (value < 0) {
+        OLED_ShowChar(x, y, '-', 8U, 1U);
+        value = -value;
+    } else {
+        OLED_ShowChar(x, y, '+', 8U, 1U);
+    }
+    x = (uint8_t)(x + 6U);
+    return AppDisplay_ShowUnsigned(x, y, (uint32_t)value, digits);
+}
+
 static uint32_t AppDisplay_CountsToCm(uint32_t counts)
 {
     float distance_cm = ((float)counts * MECANUM_CIRCLE_MM) /
@@ -115,6 +129,64 @@ static void AppDisplay_ClearRow(uint8_t row)
 
 void AppStatusDisplay_Update(void)
 {
+#if LINE_STOP_DIAGNOSTIC_DISPLAY_ENABLE
+    LineStop_Diagnostics_t line_diag;
+    float wheel_speed[2] = {0.0f, 0.0f};
+    float wheel_pwm[2] = {0.0f, 0.0f};
+    uint32_t left_counts;
+    uint32_t right_counts;
+    uint32_t left_speed;
+    uint32_t right_speed;
+    uint32_t left_pwm;
+    uint32_t right_pwm;
+
+    LineStop_GetDiagnostics(&line_diag);
+    Motion_Get_Motor_Speed(wheel_speed);
+    Motion_Get_Motor_Pwm(wheel_pwm);
+
+    left_counts = AppDisplay_Abs32(line_diag.left_counts);
+    right_counts = AppDisplay_Abs32(line_diag.right_counts);
+    left_speed = AppDisplay_Abs32((int32_t)wheel_speed[0]);
+    right_speed = AppDisplay_Abs32((int32_t)wheel_speed[1]);
+    left_pwm = AppDisplay_Abs32((int32_t)wheel_pwm[0]);
+    right_pwm = AppDisplay_Abs32((int32_t)wheel_pwm[1]);
+
+    AppDisplay_ClearRow(0U);
+    OLED_ShowString(0U, 0U, (uint8_t *)"L:", 8U, 1U);
+    AppDisplay_ShowUnsigned(12U, 0U, left_counts, 5U);
+    OLED_ShowString(48U, 0U, (uint8_t *)"R:", 8U, 1U);
+    AppDisplay_ShowUnsigned(60U, 0U, right_counts, 5U);
+
+    AppDisplay_ClearRow(1U);
+    OLED_ShowString(0U, 8U, (uint8_t *)"E:", 8U, 1U);
+    AppDisplay_ShowSigned(12U, 8U, line_diag.error_counts, 4U);
+    OLED_ShowString(54U, 8U, (uint8_t *)"C:", 8U, 1U);
+    AppDisplay_ShowSigned(66U, 8U, line_diag.correction_mm_s, 2U);
+
+    AppDisplay_ClearRow(2U);
+    OLED_ShowString(0U, 16U, (uint8_t *)"T:", 8U, 1U);
+    AppDisplay_ShowUnsigned(12U, 16U, line_diag.left_target_mm_s, 3U);
+    OLED_ShowChar(30U, 16U, '/', 8U, 1U);
+    AppDisplay_ShowUnsigned(36U, 16U, line_diag.right_target_mm_s, 3U);
+    OLED_ShowString(60U, 16U, (uint8_t *)"P:", 8U, 1U);
+    AppDisplay_ShowUnsigned(72U, 16U, left_pwm, 3U);
+    OLED_ShowChar(90U, 16U, '/', 8U, 1U);
+    AppDisplay_ShowUnsigned(96U, 16U, right_pwm, 3U);
+
+    AppDisplay_ClearRow(3U);
+    OLED_ShowString(0U, 24U, (uint8_t *)"V:", 8U, 1U);
+    AppDisplay_ShowUnsigned(12U, 24U, left_speed, 3U);
+    OLED_ShowChar(30U, 24U, '/', 8U, 1U);
+    AppDisplay_ShowUnsigned(36U, 24U, right_speed, 3U);
+    OLED_ShowString(66U, 24U, (uint8_t *)"IR:", 8U, 1U);
+    for (uint8_t i = 0U; i < 8U; i++) {
+        OLED_ShowNum((uint8_t)(84U + i * 5U), 24U,
+                     EightIR_IsBlack(i), 1U, 8U, 1U);
+    }
+
+    OLED_Refresh();
+    return;
+#else
     int *encoder_counts = (int *)Motion_Get_Data(1U);
     uint32_t left_counts = AppDisplay_Abs32(encoder_counts[0]);
     uint32_t right_counts = AppDisplay_Abs32(encoder_counts[1]);
@@ -178,4 +250,5 @@ void AppStatusDisplay_Update(void)
         (uint32_t)mission->state, 1U, 8U, 1U);
 
     OLED_Refresh();
+#endif
 }

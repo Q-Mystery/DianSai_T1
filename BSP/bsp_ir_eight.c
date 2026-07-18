@@ -4,8 +4,8 @@
 #include "oled.h"
 
 volatile uint8_t IR_Data_number[8] = {0};
-uint8_t g_ir_white_level = 1U;
-uint8_t g_ir_black_level = 0U;
+uint8_t g_ir_white_level = EIGHT_IR_WHITE_LEVEL_DEFAULT;
+uint8_t g_ir_black_level = EIGHT_IR_BLACK_LEVEL_DEFAULT;
 
 #define IR_DISPLAY_VALUE_X      (24U)
 #define IR_DISPLAY_VALUE_STEP   (12U)

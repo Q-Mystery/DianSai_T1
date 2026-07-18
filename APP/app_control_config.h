@@ -19,7 +19,7 @@
  * active brake and starts alarm outputs until reset.
  */
 #define LINE_STOP_STRAIGHT_SPEED_MM_S      (100)
-#define LINE_STOP_BLACK_CONFIRM_CYCLES     (1U)
+#define LINE_STOP_BLACK_CONFIRM_CYCLES     (2U)
 #define LINE_STOP_CALIBRATE_WHITE_ON_BOOT  (0U)
 #define LINE_STOP_CALIBRATE_WHITE_SAMPLES  (3U)
 #define LINE_STOP_ALARM_TOGGLE_MS          (250U)
@@ -119,6 +119,8 @@
  */
 #define EIGHT_IR_SENSOR_REVERSED           (0U)
 #define EIGHT_IR_CHANNEL_SETTLE_US         (50U)
+#define EIGHT_IR_WHITE_LEVEL_DEFAULT       (0U)
+#define EIGHT_IR_BLACK_LEVEL_DEFAULT       (1U)
 
 /*
  * Motor driver PWM.

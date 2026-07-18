@@ -12,6 +12,19 @@
 #define APP_OLED_DISPLAY_DIVIDER           (250U)
 #define MOTOR_DIRECT_TEST_START_DELAY_MS   (3000U)
 
+/*
+ * Straight-line black-stop mission.
+ * On power-up the car commands both wheels to the same forward speed. Any
+ * logical black reading from the eight-channel sensor locks the motor driver in
+ * active brake and starts alarm outputs until reset.
+ */
+#define LINE_STOP_STRAIGHT_SPEED_MM_S      (100)
+#define LINE_STOP_BLACK_CONFIRM_CYCLES     (1U)
+#define LINE_STOP_CALIBRATE_WHITE_ON_BOOT  (0U)
+#define LINE_STOP_CALIBRATE_WHITE_SAMPLES  (3U)
+#define LINE_STOP_ALARM_TOGGLE_MS          (250U)
+#define LINE_STOP_ALARM_BCD_CODE           (99U)
+
 /* Two-digit BCD 7-segment display digit select: PA0=tens, PA1=ones. */
 #define BCD_DIGIT_SELECT_ACTIVE_HIGH       (1U)
 
@@ -170,6 +183,9 @@
         0.0f)
 #define MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S (4.20f)
 #define MOTOR_PID_CORRECTION_LIMIT         (120.0f)
+#define MOTOR_STRAIGHT_SYNC_ENABLE         (1U)
+#define MOTOR_STRAIGHT_SYNC_KP             (0.80f)
+#define MOTOR_STRAIGHT_SYNC_LIMIT_PWM      (50.0f)
 
 /*
  * Wheel speed PID. The same gains are applied to left and right wheels.

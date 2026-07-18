@@ -17,6 +17,8 @@ keil/Listings/
 *.hex
 *.bin
 *.map
+!firmware/
+!firmware/*.hex
 
 # Tool and editor local state
 .metadata/

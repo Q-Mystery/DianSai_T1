@@ -17,3 +17,4 @@
 *.jpeg binary
 *.gif binary
 *.ico binary
+firmware/*.hex binary

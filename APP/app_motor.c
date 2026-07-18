@@ -11,6 +11,7 @@ static int speed_R1_setup = 0;
 
 static int g_offset_yaw = 0;
 static uint16_t g_speed_setup = 0;
+static volatile uint8_t g_motion_locked = 0U;
 
 static float Motion_Clamp_Pwm(float pwm)
 {
@@ -30,6 +31,17 @@ static float Motion_Clamp_Pwm_Correction(float pwm)
     }
     if (pwm < -MOTOR_PID_CORRECTION_LIMIT) {
         return -MOTOR_PID_CORRECTION_LIMIT;
+    }
+    return pwm;
+}
+
+static float Motion_Clamp_Sync_Pwm(float pwm)
+{
+    if (pwm > MOTOR_STRAIGHT_SYNC_LIMIT_PWM) {
+        return MOTOR_STRAIGHT_SYNC_LIMIT_PWM;
+    }
+    if (pwm < -MOTOR_STRAIGHT_SYNC_LIMIT_PWM) {
+        return -MOTOR_STRAIGHT_SYNC_LIMIT_PWM;
     }
     return pwm;
 }
@@ -153,11 +165,45 @@ void Motion_Stop(uint8_t brake)
     Motor_Stop(brake);
 }
 
+void Motion_Emergency_Lock(void)
+{
+    g_motion_locked = 1U;
+    g_start_ctrl = 0U;
+    g_yaw_adjust = 0U;
+    g_speed_setup = 0U;
+    speed_L1_setup = 0;
+    speed_R1_setup = 0;
+
+    for (uint8_t i = 0U; i < MAX_MOTOR; i++) {
+        motor_data.speed_set[i] = 0;
+        motor_data.speed_pwm[i] = 0.0f;
+    }
+
+    PID_Clear_Motor(MAX_MOTOR);
+    Motor_Stop(STOP_BRAKE);
+}
+
+void Motion_Clear_Lock(void)
+{
+    g_motion_locked = 0U;
+    Motion_Stop(STOP_FREE);
+}
+
+uint8_t Motion_Is_Locked(void)
+{
+    return g_motion_locked;
+}
+
 // speed_mX=[-1000, 1000], 单位为：mm/s
 //speed_mX=[-1000,1000],Unit: mm/s
 void Motion_Set_Speed(int16_t speed_m1, int16_t speed_m2)
 {
     int16_t requested[MAX_MOTOR] = {speed_m1, speed_m2};
+
+    if (g_motion_locked != 0U) {
+        Motor_Stop(STOP_BRAKE);
+        return;
+    }
 
     g_start_ctrl = 1;
     for (uint8_t i = 0; i < MAX_MOTOR; i++)
@@ -412,6 +458,12 @@ void wheel_Ctrl(int16_t V_x, int16_t V_y, int16_t V_z)
 void Motion_Handle(void)
 {
     bool overspeed[MAX_MOTOR] = {false, false};
+    float straight_sync_pwm = 0.0f;
+
+    if (g_motion_locked != 0U) {
+        Motor_Stop(STOP_BRAKE);
+        return;
+    }
 
     Motion_Get_Speed(&car_data);
 
@@ -419,14 +471,30 @@ void Motion_Handle(void)
     {
         PID_Calc_Motor(&motor_data);
 
+        if ((MOTOR_STRAIGHT_SYNC_ENABLE != 0U) &&
+            (motor_data.speed_set[0] > 0) &&
+            (motor_data.speed_set[0] == motor_data.speed_set[1])) {
+            straight_sync_pwm = Motion_Clamp_Sync_Pwm(
+                (motor_data.speed_mm_s[0] - motor_data.speed_mm_s[1]) *
+                MOTOR_STRAIGHT_SYNC_KP);
+        }
+
         /* Zero/overspeed targets never become a reverse command. */
         for (uint8_t i = 0; i < MAX_MOTOR; i++)
         {
             float correction = Motion_Clamp_Pwm_Correction(motor_data.speed_pwm[i]);
+            float sync_correction = 0.0f;
+
+            if (i == 0U) {
+                sync_correction = -straight_sync_pwm;
+            } else if (i == 1U) {
+                sync_correction = straight_sync_pwm;
+            }
+
             pid_motor[i].pwm_output = correction;
             motor_data.speed_pwm[i] = Motion_Clamp_Pwm(
                 Motion_Speed_Feedforward_Pwm(motor_data.speed_set[i]) +
-                correction);
+                correction + sync_correction);
 
             overspeed[i] =
                 (MOTOR_OVERSPEED_BRAKE_ENABLE != 0U) &&

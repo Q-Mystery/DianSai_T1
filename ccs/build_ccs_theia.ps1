@@ -113,6 +113,7 @@ $sources = @(
     "APP\app_motor.c",
     "APP\bsp_PID_motor.c",
     "APP\app_irtracking_eight.c",
+    "APP\app_gyro_straight.c",
     "APP\app_imu.c",
     "APP\app_status_display.c",
     "APP\app_track_mission.c",

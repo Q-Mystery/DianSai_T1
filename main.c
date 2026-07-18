@@ -1,6 +1,8 @@
 #include "AllHeader.h"
 #include "app_bcd_display.h"
 #include "app_control_config.h"
+#include "app_gyro_straight.h"
+#include "app_imu.h"
 #include "app_voice.h"
 
 static bool g_line_stop_locked = false;
@@ -81,6 +83,10 @@ static void LineStop_UpdateAlarm(void)
 
 static void LineStop_UpdateDrive(void)
 {
+    int16_t gyro_correction;
+    int16_t left_speed;
+    int16_t right_speed;
+
     if (LineStop_IsBlackLineDetected()) {
         if (g_black_confirm_cycles < LINE_STOP_BLACK_CONFIRM_CYCLES) {
             g_black_confirm_cycles++;
@@ -94,8 +100,10 @@ static void LineStop_UpdateDrive(void)
         return;
     }
 
-    Motion_Set_Speed(LINE_STOP_STRAIGHT_SPEED_MM_S,
-                     LINE_STOP_STRAIGHT_SPEED_MM_S);
+    gyro_correction = AppGyroStraight_UpdateCorrection();
+    left_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S + gyro_correction);
+    right_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S - gyro_correction);
+    Motion_Set_Speed(left_speed, right_speed);
 }
 
 int main(void)
@@ -103,6 +111,7 @@ int main(void)
     SYSCFG_DL_init();
     AppBCDDisplay_Init();
     OLED_Init();
+    bool imu_ready = AppIMU_Init();
     AppVoice_Init();
     LineStop_AlarmInit();
     Init_Motor_PWM();
@@ -115,6 +124,7 @@ int main(void)
     PID_Set_Motor_Parm(1U, MOTOR_SPEED_PID_KP, MOTOR_SPEED_PID_KI,
                        MOTOR_SPEED_PID_KD);
     encoder_init();
+    AppGyroStraight_Init(imu_ready);
 
 #if LINE_STOP_CALIBRATE_WHITE_ON_BOOT
     delay_ms(100U);

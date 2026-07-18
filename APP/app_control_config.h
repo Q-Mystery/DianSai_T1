@@ -25,6 +25,20 @@
 #define LINE_STOP_ALARM_TOGGLE_MS          (250U)
 #define LINE_STOP_ALARM_BCD_CODE           (99U)
 
+/*
+ * Gyro straight-line heading hold.
+ * Positive correction is applied as left = base + correction,
+ * right = base - correction. Flip GYRO_STRAIGHT_CORRECTION_SIGN if the first
+ * road test shows that the car corrects farther away from the target heading.
+ */
+#define GYRO_STRAIGHT_ENABLE               (1U)
+#define GYRO_STRAIGHT_CORRECTION_SIGN      (1)
+#define GYRO_STRAIGHT_RATE_DEADBAND_X10    (5)
+#define GYRO_STRAIGHT_YAW_LIMIT_X10        (300)
+#define GYRO_STRAIGHT_KP_MM_S_PER_DEG      (2.00f)
+#define GYRO_STRAIGHT_KD_MM_S_PER_DPS      (0.60f)
+#define GYRO_STRAIGHT_MAX_DELTA_MM_S       (30)
+
 /* Two-digit BCD 7-segment display digit select: PA0=tens, PA1=ones. */
 #define BCD_DIGIT_SELECT_ACTIVE_HIGH       (1U)
 
@@ -38,7 +52,8 @@
 #define IMU_INIT_RETRY_COUNT               (2U)
 #define IMU_CALIBRATION_SAMPLES            (128U)
 #define IMU_GYRO_Z_CURVE_THRESHOLD_RAW     (300)
-#define IMU_GYRO_Z_DPS_X10_DIVISOR         (16)
+#define IMU_GYRO_CONFIG_VALUE              (0x00U) /* +/-250 dps */
+#define IMU_GYRO_Z_DPS_X10_DIVISOR         (131)
 #define IMU_UPDATE_MIN_INTERVAL_MS         (20U)
 
 /*

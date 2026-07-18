@@ -234,7 +234,7 @@ static bool IMU_Configure(void)
     delay_ms(100);
     ok &= IMU_WriteReg(MPU6050_REG_PWR_MGMT_1, 0x01U);
     ok &= IMU_WriteReg(MPU6050_REG_PWR_MGMT_2, 0x00U);
-    ok &= IMU_WriteReg(MPU6050_REG_GYRO_CONFIG, 0x18U);
+    ok &= IMU_WriteReg(MPU6050_REG_GYRO_CONFIG, IMU_GYRO_CONFIG_VALUE);
     ok &= IMU_WriteReg(MPU6050_REG_ACCEL_CONFIG, 0x00U);
     ok &= IMU_WriteReg(MPU6050_REG_CONFIG, 0x03U);
     ok &= IMU_WriteReg(MPU6050_REG_SMPLRT_DIV, 0x04U);

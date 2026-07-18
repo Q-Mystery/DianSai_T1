@@ -18,12 +18,16 @@
  * logical black reading from the eight-channel sensor locks the motor driver in
  * active brake and starts alarm outputs until reset.
  */
-#define LINE_STOP_STRAIGHT_SPEED_MM_S      (100)
+#define LINE_STOP_STRAIGHT_SPEED_MM_S      (33)
 #define LINE_STOP_BLACK_CONFIRM_CYCLES     (2U)
 #define LINE_STOP_CALIBRATE_WHITE_ON_BOOT  (0U)
 #define LINE_STOP_CALIBRATE_WHITE_SAMPLES  (3U)
 #define LINE_STOP_ALARM_TOGGLE_MS          (250U)
 #define LINE_STOP_ALARM_BCD_CODE           (99U)
+#define LINE_STOP_ENCODER_STRAIGHT_ENABLE  (1U)
+#define LINE_STOP_ENCODER_DEADBAND_COUNTS  (2)
+#define LINE_STOP_ENCODER_KP_MM_S_PER_COUNT (0.20f)
+#define LINE_STOP_ENCODER_MAX_DELTA_MM_S   (4)
 
 /*
  * Gyro straight-line heading hold.
@@ -31,13 +35,13 @@
  * right = base - correction. Flip GYRO_STRAIGHT_CORRECTION_SIGN if the first
  * road test shows that the car corrects farther away from the target heading.
  */
-#define GYRO_STRAIGHT_ENABLE               (1U)
+#define GYRO_STRAIGHT_ENABLE               (0U)
 #define GYRO_STRAIGHT_CORRECTION_SIGN      (1)
 #define GYRO_STRAIGHT_RATE_DEADBAND_X10    (5)
 #define GYRO_STRAIGHT_YAW_LIMIT_X10        (300)
 #define GYRO_STRAIGHT_KP_MM_S_PER_DEG      (2.00f)
 #define GYRO_STRAIGHT_KD_MM_S_PER_DPS      (0.60f)
-#define GYRO_STRAIGHT_MAX_DELTA_MM_S       (30)
+#define GYRO_STRAIGHT_MAX_DELTA_MM_S       (10)
 
 /* Two-digit BCD 7-segment display digit select: PA0=tens, PA1=ones. */
 #define BCD_DIGIT_SELECT_ACTIVE_HIGH       (1U)
@@ -201,8 +205,8 @@
 #define MOTOR_SPEED_FEEDFORWARD_PWM_PER_MM_S (4.20f)
 #define MOTOR_PID_CORRECTION_LIMIT         (120.0f)
 #define MOTOR_STRAIGHT_SYNC_ENABLE         (1U)
-#define MOTOR_STRAIGHT_SYNC_KP             (0.80f)
-#define MOTOR_STRAIGHT_SYNC_LIMIT_PWM      (50.0f)
+#define MOTOR_STRAIGHT_SYNC_KP             (0.25f)
+#define MOTOR_STRAIGHT_SYNC_LIMIT_PWM      (20.0f)
 
 /*
  * Wheel speed PID. The same gains are applied to left and right wheels.

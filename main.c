@@ -1,14 +1,79 @@
 #include "AllHeader.h"
 #include "app_bcd_display.h"
 #include "app_control_config.h"
-#include "app_gyro_straight.h"
-#include "app_imu.h"
 #include "app_voice.h"
 
 static bool g_line_stop_locked = false;
 static uint8_t g_black_confirm_cycles = 0U;
 static bool g_alarm_flash_on = false;
 static uint32_t g_last_alarm_flash_ms = 0U;
+static bool g_straight_encoder_ready = false;
+static int32_t g_straight_encoder_start[2] = {0, 0};
+
+static int32_t LineStop_Abs32(int32_t value)
+{
+    return (value < 0) ? -value : value;
+}
+
+static int16_t LineStop_ClampSpeedCorrection(float correction)
+{
+    if (correction > (float)LINE_STOP_ENCODER_MAX_DELTA_MM_S) {
+        correction = (float)LINE_STOP_ENCODER_MAX_DELTA_MM_S;
+    } else if (correction < (float)-LINE_STOP_ENCODER_MAX_DELTA_MM_S) {
+        correction = (float)-LINE_STOP_ENCODER_MAX_DELTA_MM_S;
+    }
+
+    if (correction > 0.0f) {
+        return (int16_t)(correction + 0.5f);
+    }
+    if (correction < 0.0f) {
+        return (int16_t)(correction - 0.5f);
+    }
+    return 0;
+}
+
+static void LineStop_ResetStraightEncoder(void)
+{
+    int encoder_counts[2] = {0, 0};
+
+    Encoder_Get_ALL(encoder_counts);
+    g_straight_encoder_start[0] = encoder_counts[0];
+    g_straight_encoder_start[1] = encoder_counts[1];
+    g_straight_encoder_ready = true;
+}
+
+static int16_t LineStop_UpdateEncoderCorrection(void)
+{
+    int encoder_counts[2] = {0, 0};
+    int32_t left_delta;
+    int32_t right_delta;
+    int32_t error_counts;
+    float correction;
+
+    if (LINE_STOP_ENCODER_STRAIGHT_ENABLE == 0U) {
+        return 0;
+    }
+
+    if (!g_straight_encoder_ready) {
+        LineStop_ResetStraightEncoder();
+        return 0;
+    }
+
+    Encoder_Get_ALL(encoder_counts);
+    left_delta = LineStop_Abs32((int32_t)encoder_counts[0] -
+                                g_straight_encoder_start[0]);
+    right_delta = LineStop_Abs32((int32_t)encoder_counts[1] -
+                                 g_straight_encoder_start[1]);
+    error_counts = right_delta - left_delta;
+
+    if (LineStop_Abs32(error_counts) <=
+        (int32_t)LINE_STOP_ENCODER_DEADBAND_COUNTS) {
+        return 0;
+    }
+
+    correction = (float)error_counts * LINE_STOP_ENCODER_KP_MM_S_PER_COUNT;
+    return LineStop_ClampSpeedCorrection(correction);
+}
 
 static void LineStop_SetAlarmSignal(bool on)
 {
@@ -83,7 +148,7 @@ static void LineStop_UpdateAlarm(void)
 
 static void LineStop_UpdateDrive(void)
 {
-    int16_t gyro_correction;
+    int16_t encoder_correction;
     int16_t left_speed;
     int16_t right_speed;
 
@@ -100,9 +165,9 @@ static void LineStop_UpdateDrive(void)
         return;
     }
 
-    gyro_correction = AppGyroStraight_UpdateCorrection();
-    left_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S + gyro_correction);
-    right_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S - gyro_correction);
+    encoder_correction = LineStop_UpdateEncoderCorrection();
+    left_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S + encoder_correction);
+    right_speed = (int16_t)(LINE_STOP_STRAIGHT_SPEED_MM_S - encoder_correction);
     Motion_Set_Speed(left_speed, right_speed);
 }
 
@@ -111,7 +176,6 @@ int main(void)
     SYSCFG_DL_init();
     AppBCDDisplay_Init();
     OLED_Init();
-    bool imu_ready = AppIMU_Init();
     AppVoice_Init();
     LineStop_AlarmInit();
     Init_Motor_PWM();
@@ -124,7 +188,7 @@ int main(void)
     PID_Set_Motor_Parm(1U, MOTOR_SPEED_PID_KP, MOTOR_SPEED_PID_KI,
                        MOTOR_SPEED_PID_KD);
     encoder_init();
-    AppGyroStraight_Init(imu_ready);
+    LineStop_ResetStraightEncoder();
 
 #if LINE_STOP_CALIBRATE_WHITE_ON_BOOT
     delay_ms(100U);
